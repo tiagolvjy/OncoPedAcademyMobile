@@ -21,16 +21,13 @@ export default function LoginScreen({ navigation }: any) {
     });
 
     const onSubmit = async (data: any) => {
-        setLoading(true);
-        const { success, error } = await AuthServices.login(data.email, data.password);
-        setLoading(false);
-        if (success) {
-            Alert.alert('Sucesso', 'Login realizado com sucesso!');
-            // navegação para home futuramente
-        } else {
-            Alert.alert('Erro', error ?? 'Erro ao realizar login.');
-        }
+    setLoading(true);
+    const { success, error } = await AuthServices.login(data.email, data.password);
+    setLoading(false);
+    if (!success) {
+        Alert.alert('Erro', error ?? 'Erro ao realizar login.');
     }
+}
 
     return (
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
