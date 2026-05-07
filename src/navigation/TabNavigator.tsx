@@ -2,9 +2,9 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import HomeScreen from '../screens/HomeScreen';
-import CoursesScreen from '../screens/CoursesScreen';
+import CoursesNavigator from './CoursesNavigator';
 import AIScreen from '../screens/AIScreen';
-import ProfileScreen from '../screens/ProfileScreen';
+import ProfileNavigator from './ProfileNavigator';
 
 const Tab = createBottomTabNavigator();
 
@@ -36,9 +36,9 @@ export default function TabNavigator() {
             })}
         >
             <Tab.Screen name="Início" component={HomeScreen} />
-            <Tab.Screen name="Cursos" component={CoursesScreen} />
+            <Tab.Screen name="Cursos" component={CoursesNavigator} options={{ headerShown: false }} />
             <Tab.Screen name="IA Dicas" component={AIScreen} />
-            <Tab.Screen name="Perfil" component={ProfileScreen} />
+            <Tab.Screen name="Perfil" component={ProfileNavigator} options={{ headerShown: false }} />
         </Tab.Navigator>
     );
 }
