@@ -8,7 +8,7 @@ export default function HomeScreen() {
     return (
         <ScrollView contentContainerStyle={styles.container}>
             <Text style={styles.greeting}>
-                Olá, {userData?.name?.split(' ')[0] ?? 'Usuário'}! 👋
+                Olá, {userData?.name?.split(' ')[0] ?? 'Usuário'}!
             </Text>
             <Text style={styles.subtitle}>Bem-vindo à OncoPed Academy</Text>
 
