@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Image } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import AuthServices from '../services/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function ProfileScreen() {
     const { userData } = useAuth();
@@ -37,6 +38,16 @@ export default function ProfileScreen() {
 
             <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
                 <Text style={styles.logoutText}>Sair da conta</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+                style={[styles.logoutBtn, { backgroundColor: '#888', marginBottom: 12 }]}
+                onPress={async () => {
+                    await AsyncStorage.removeItem('@onboarding_done');
+                    Alert.alert('Pronto', 'Onboarding resetado! Faça logout para ver.');
+                }}
+            >
+                <Text style={styles.logoutText}>Resetar Onboarding (dev)</Text>
             </TouchableOpacity>
         </View>
     );
