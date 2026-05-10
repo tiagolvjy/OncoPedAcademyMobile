@@ -81,7 +81,7 @@ export default function ProfileScreen() {
                 <Text style={styles.sectionLabel}>CONTA</Text>
                 <View style={styles.menuCard}>
                     <MenuItem icon="person-outline" label="Perfil"
-                        onPress={() => Alert.alert('Em breve', 'Edição de perfil será implementada em breve.')} />
+                        onPress={() => navigation.navigate('EditProfile')} />
                     <View style={styles.divider} />
                     <MenuItem icon="mail-outline" label="E-mail" value={userData?.email ?? ''} />
                     <View style={styles.divider} />
