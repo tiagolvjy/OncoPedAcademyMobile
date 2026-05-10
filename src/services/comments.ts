@@ -24,14 +24,20 @@ const CommentsService = {
             );
             const snapshot = await getDocs(q);
             return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Comment));
-        } catch { return []; }
+        } catch (error) {
+            console.error('Erro comentários getByCourse:', error);
+            return [];
+        }
     },
 
     add: async (comment: Omit<Comment, 'id'>): Promise<boolean> => {
         try {
             await addDoc(collection(db, 'comments'), comment);
             return true;
-        } catch { return false; }
+        } catch (error) {
+            console.error('Erro comentários add:', error);
+            return false;
+        }
     },
 };
 

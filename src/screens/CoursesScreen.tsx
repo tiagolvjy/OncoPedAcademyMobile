@@ -1,10 +1,11 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     View, Text, StyleSheet, FlatList, TextInput,
     TouchableOpacity, ActivityIndicator, RefreshControl, Image,
+    Alert, Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import CourseServicesMobile, { Course } from '../services/courses';
 import FavoritesService from '../services/favorites';
@@ -22,10 +23,16 @@ export default function CoursesScreen() {
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [showPlaylistModal, setShowPlaylistModal] = useState(false);
+    const [playlistName, setPlaylistName] = useState('');
 
     const firstName = userData?.name?.split(' ')[0] ?? 'Usuário';
 
-    useEffect(() => { loadData(); }, []);
+    useFocusEffect(
+        useCallback(() => {
+            loadData();
+        }, [])
+    );
 
     const loadData = async () => {
         if (!user) return;
@@ -64,7 +71,6 @@ export default function CoursesScreen() {
             style={styles.courseCard}
             onPress={() => navigation.navigate('CourseDetail', { course: item })}
         >
-            {/* COVER IMAGE ou PLACEHOLDER */}
             <View style={styles.courseImageContainer}>
                 {item.coverImage ? (
                     <Image source={{ uri: item.coverImage }} style={styles.courseImage} />
@@ -183,7 +189,7 @@ export default function CoursesScreen() {
                     columnWrapperStyle={{ gap: 12 }}
                     contentContainerStyle={styles.list}
                     ListHeaderComponent={
-                        <TouchableOpacity style={styles.createPlaylistBtn}>
+                        <TouchableOpacity style={styles.createPlaylistBtn} onPress={() => setShowPlaylistModal(true)}>
                             <Ionicons name="add-circle-outline" size={18} color="#2563EB" />
                             <Text style={styles.createPlaylistText}>Criar playlist</Text>
                         </TouchableOpacity>
@@ -211,6 +217,44 @@ export default function CoursesScreen() {
                     }
                 />
             )}
+
+            {/* MODAL CRIAR PLAYLIST */}
+            <Modal visible={showPlaylistModal} transparent animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalCard}>
+                        <Text style={styles.modalTitle}>Nova Playlist</Text>
+                        <TextInput
+                            style={styles.modalInput}
+                            placeholder="Nome da playlist"
+                            placeholderTextColor="#aaa"
+                            value={playlistName}
+                            onChangeText={setPlaylistName}
+                            autoFocus
+                        />
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity style={styles.modalBtnCancel}
+                                onPress={() => { setShowPlaylistModal(false); setPlaylistName(''); }}>
+                                <Text style={styles.modalBtnCancelText}>Cancelar</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.modalBtnConfirm}
+                                onPress={async () => {
+                                    if (!playlistName.trim() || !user) return;
+                                    await PlaylistsService.create({
+                                        userId: user.uid,
+                                        name: playlistName.trim(),
+                                        courseIds: [],
+                                        createdAt: new Date().toISOString(),
+                                    });
+                                    setShowPlaylistModal(false);
+                                    setPlaylistName('');
+                                    loadData();
+                                }}>
+                                <Text style={styles.modalBtnConfirmText}>Criar</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -272,6 +316,23 @@ const styles = StyleSheet.create({
     playlistCount: { fontSize: 12, color: '#888', paddingHorizontal: 10, paddingBottom: 10 },
     createPlaylistBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 },
     createPlaylistText: { fontSize: 14, color: '#2563EB', fontWeight: '600' },
+
+    // MODAL
+    modalOverlay: {
+        flex: 1, backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center', alignItems: 'center', padding: 24,
+    },
+    modalCard: { backgroundColor: '#fff', borderRadius: 16, padding: 24, width: '100%' },
+    modalTitle: { fontSize: 18, fontWeight: '700', color: '#0A1628', marginBottom: 16 },
+    modalInput: {
+        borderWidth: 1, borderColor: '#ddd', borderRadius: 10, backgroundColor: '#fafafa',
+        paddingHorizontal: 14, height: 48, fontSize: 15, color: '#333', marginBottom: 16,
+    },
+    modalButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12 },
+    modalBtnCancel: { paddingVertical: 10, paddingHorizontal: 20 },
+    modalBtnCancelText: { color: '#999', fontSize: 15, fontWeight: '600' },
+    modalBtnConfirm: { backgroundColor: '#2563EB', borderRadius: 10, paddingVertical: 10, paddingHorizontal: 24 },
+    modalBtnConfirmText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 
     // EMPTY
     emptyContainer: { alignItems: 'center', paddingTop: 40, gap: 8 },

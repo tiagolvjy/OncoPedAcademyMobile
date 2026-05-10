@@ -23,14 +23,20 @@ const PlaylistsService = {
             );
             const snapshot = await getDocs(q);
             return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Playlist));
-        } catch { return []; }
+        } catch (error) {
+            console.error('Erro buscar playlists:', error);
+            return [];
+        }
     },
 
     create: async (data: Omit<Playlist, 'id'>): Promise<boolean> => {
         try {
             await addDoc(collection(db, 'playlists'), data);
             return true;
-        } catch { return false; }
+        } catch (error) {
+            console.error('Erro criar playlist:', error);
+            return false;
+        }
     },
 
     addCourse: async (playlistId: string, courseIds: string[]): Promise<boolean> => {

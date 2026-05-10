@@ -38,6 +38,17 @@ export default function HomeScreen() {
         loadData();
     }, []);
 
+    const goToTab = (tabName: string, params?: any) => {
+        navigation.navigate(tabName, params);
+    };
+
+    const goToCourseDetail = (course: Course) => {
+        navigation.navigate('Cursos', {
+            screen: 'CourseDetail',
+            params: { course },
+        });
+    };
+
     const lastResult = results.length > 0 ? results[0] : null;
     const levelingResult = results.find(r => r.type === 'leveling');
 
@@ -103,7 +114,6 @@ export default function HomeScreen() {
 
                 {lastResult ? (
                     <View style={styles.progressCard}>
-                        {/* CÍRCULO DE PROGRESSO */}
                         <View style={styles.circleContainer}>
                             <View style={styles.circleOuter}>
                                 <View style={styles.circleInner}>
@@ -121,10 +131,7 @@ export default function HomeScreen() {
 
                         <TouchableOpacity
                             style={styles.continueButton}
-                            onPress={() => {
-                                const tab = navigation.getParent();
-                                if (tab) tab.navigate('Cursos');
-                            }}
+                            onPress={() => goToTab('Cursos')}
                         >
                             <Text style={styles.continueText}>Ver Cursos</Text>
                         </TouchableOpacity>
@@ -136,10 +143,7 @@ export default function HomeScreen() {
                         <Text style={styles.progressMeta}>Explore a biblioteca e comece agora!</Text>
                         <TouchableOpacity
                             style={styles.continueButton}
-                            onPress={() => {
-                                const tab = navigation.getParent();
-                                if (tab) tab.navigate('Cursos');
-                            }}
+                            onPress={() => goToTab('Cursos')}
                         >
                             <Text style={styles.continueText}>Explorar Cursos</Text>
                         </TouchableOpacity>
@@ -152,10 +156,7 @@ export default function HomeScreen() {
                 <View style={styles.section}>
                     <View style={styles.sectionHeaderRow}>
                         <Text style={styles.sectionTitle}>Cursos Disponíveis</Text>
-                        <TouchableOpacity onPress={() => {
-                            const tab = navigation.getParent();
-                            if (tab) tab.navigate('Cursos');
-                        }}>
+                        <TouchableOpacity onPress={() => goToTab('Cursos')}>
                             <Text style={styles.verMais}>Ver Mais</Text>
                         </TouchableOpacity>
                     </View>
@@ -164,13 +165,7 @@ export default function HomeScreen() {
                             <TouchableOpacity
                                 key={course.id}
                                 style={styles.courseCard}
-                                onPress={() => {
-                                    const tab = navigation.getParent();
-                                    if (tab) tab.navigate('Cursos', {
-                                        screen: 'CourseDetail',
-                                        params: { course },
-                                    });
-                                }}
+                                onPress={() => goToCourseDetail(course)}
                             >
                                 <Text style={styles.courseTitle} numberOfLines={2}>{course.title}</Text>
                                 <Text style={styles.courseAuthor}>Por {course.authorName}</Text>
@@ -199,12 +194,7 @@ export default function HomeScreen() {
                 <View style={styles.sectionHeaderRow}>
                     <Text style={styles.sectionTitle}>Atividades Recentes</Text>
                     {results.length > 3 && (
-                        <TouchableOpacity onPress={() => {
-                            const tab = navigation.getParent();
-                            if (tab) tab.navigate('Perfil', {
-                                screen: 'QuizHistory',
-                            });
-                        }}>
+                        <TouchableOpacity onPress={() => goToTab('Perfil', { screen: 'QuizHistory' })}>
                             <Text style={styles.verMais}>Ver Mais</Text>
                         </TouchableOpacity>
                     )}
@@ -253,7 +243,6 @@ const styles = StyleSheet.create({
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24,
     },
-    
     headerTop: {
         flexDirection: 'row',
         justifyContent: 'space-between',

@@ -132,6 +132,13 @@ export default function CadastroAlunoScreen({ navigation }: any) {
 
                 {/* CARD */}
                 <View style={styles.card}>
+                    <TouchableOpacity style={styles.backButton} onPress={() => {
+                    if (step > 1) setStep(step - 1);
+                    else navigation.goBack();
+                }}>
+                    <Ionicons name="arrow-back" size={22} color="#0A1628" />
+                    <Text style={styles.backButtonText}>Voltar</Text>
+                </TouchableOpacity>
                     <Text style={styles.title}>Cadastro do Aluno</Text>
                     <Text style={styles.subtitle}>Preencha seus dados para criar sua conta e começar sua jornada de aprendizado.</Text>
 
@@ -342,4 +349,6 @@ const styles = StyleSheet.create({
     },
     checkboxActive: { backgroundColor: '#2563EB', borderColor: '#2563EB' },
     checkboxLabel: { fontSize: 13, color: '#555' },
+    backButton: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 },
+    backButtonText: { fontSize: 15, color: '#0A1628', fontWeight: '500' },
 });
