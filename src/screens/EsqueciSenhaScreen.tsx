@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import {
     View, Text, TextInput, TouchableOpacity,
-    StyleSheet, ActivityIndicator, Alert, ScrollView, KeyboardAvoidingView, Platform
+    StyleSheet, ActivityIndicator, Alert,
+    KeyboardAvoidingView, Platform, ScrollView, Image,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import AuthServices from '../services/auth';
 
 export default function EsqueciSenhaScreen({ navigation }: any) {
-
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -17,58 +18,95 @@ export default function EsqueciSenhaScreen({ navigation }: any) {
         setLoading(false);
         if (success) {
             Alert.alert('Sucesso', 'Verifique sua caixa de email para redefinir a senha.', [
-                { text: 'OK', onPress: () => navigation.goBack() }
+                { text: 'OK', onPress: () => navigation.goBack() },
             ]);
         } else {
             Alert.alert('Erro', error ?? 'Erro ao enviar email.');
         }
-    }
+    };
 
     return (
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-            <ScrollView contentContainerStyle={styles.container}>
-                <Text style={styles.title}>Recuperar senha</Text>
-                <Text style={styles.description}>
-                    Digite seu email e enviaremos um link para redefinir sua senha.
-                </Text>
+            <ScrollView contentContainerStyle={{ flexGrow: 1 }} bounces={false} keyboardShouldPersistTaps="handled">
+                {/* HEADER */}
+                <View style={styles.header}>
+                    <Image source={require('../../assets/logoOncoPedAcademy.png')} style={styles.logo} resizeMode="contain" />
+                </View>
 
-                <Text style={styles.label}>Email</Text>
-                <TextInput
-                    style={styles.input}
-                    placeholder="Digite seu email"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    value={email}
-                    onChangeText={setEmail}
-                />
+                {/* CARD */}
+                <View style={styles.card}>
+                    <Text style={styles.title}>Recuperar Senha</Text>
+                    <Text style={styles.subtitle}>
+                        Digite seu email cadastrado e enviaremos um link para redefinir sua senha.
+                    </Text>
 
-                <TouchableOpacity
-                    style={[styles.button, loading && styles.buttonDisabled]}
-                    onPress={handleSubmit}
-                    disabled={loading}
-                >
-                    {loading
-                        ? <ActivityIndicator color="#fff" />
-                        : <Text style={styles.buttonText}>Enviar</Text>
-                    }
-                </TouchableOpacity>
+                    {/* ÍCONE */}
+                    <View style={styles.iconContainer}>
+                        <Ionicons name="mail-outline" size={48} color="#2563EB" />
+                    </View>
 
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Text style={styles.linkCenter}>Voltar ao login</Text>
-                </TouchableOpacity>
+                    <Text style={styles.label}>Digite seu e-mail</Text>
+                    <View style={styles.inputContainer}>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Digite o e-mail cadastrado"
+                            placeholderTextColor="#aaa"
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            value={email}
+                            onChangeText={setEmail}
+                        />
+                    </View>
+
+                    <TouchableOpacity
+                        style={[styles.button, loading && styles.buttonDisabled]}
+                        onPress={handleSubmit}
+                        disabled={loading}
+                    >
+                        {loading
+                            ? <ActivityIndicator color="#fff" />
+                            : <Text style={styles.buttonText}>Enviar link</Text>
+                        }
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.backRow} onPress={() => navigation.goBack()}>
+                        <Ionicons name="arrow-back" size={18} color="#2563EB" />
+                        <Text style={styles.backText}>Voltar ao login</Text>
+                    </TouchableOpacity>
+                </View>
             </ScrollView>
         </KeyboardAvoidingView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flexGrow: 1, padding: 24, justifyContent: 'center', backgroundColor: '#fff' },
-    title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 12, color: '#1a1a1a' },
-    description: { fontSize: 14, textAlign: 'center', color: '#666', marginBottom: 32, lineHeight: 20 },
-    label: { fontSize: 14, fontWeight: '600', marginBottom: 4, color: '#333' },
-    input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 15, backgroundColor: '#fafafa' },
-    button: { backgroundColor: '#4703D0', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 8 },
+    header: { backgroundColor: '#172F50', paddingTop: 50, paddingBottom: 70, alignItems: 'center' },
+    logo: { width: 160, height: 110 },
+    card: {
+        flex: 1, backgroundColor: '#fff', marginTop: -35,
+        borderTopLeftRadius: 32, borderTopRightRadius: 32,
+        paddingHorizontal: 28, paddingTop: 36, paddingBottom: 40,
+    },
+    title: { fontSize: 26, fontWeight: 'bold', color: '#2563EB', marginBottom: 8 },
+    subtitle: { fontSize: 14, color: '#666', lineHeight: 20, marginBottom: 24 },
+    iconContainer: {
+        alignSelf: 'center', backgroundColor: '#EBF5FF', width: 90, height: 90,
+        borderRadius: 45, justifyContent: 'center', alignItems: 'center', marginBottom: 28,
+    },
+    label: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 6 },
+    inputContainer: {
+        flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#ddd',
+        borderRadius: 25, backgroundColor: '#fafafa', paddingHorizontal: 16, height: 50, marginBottom: 24,
+    },
+    input: { flex: 1, fontSize: 15, color: '#333' },
+    button: {
+        backgroundColor: '#2563EB', borderRadius: 25, height: 52,
+        alignItems: 'center', justifyContent: 'center', marginBottom: 20,
+    },
     buttonDisabled: { opacity: 0.6 },
-    buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-    linkCenter: { color: '#4703D0', fontSize: 14, textAlign: 'center', marginTop: 16 },
+    buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 17 },
+    backRow: {
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    },
+    backText: { color: '#2563EB', fontSize: 15, fontWeight: '600' },
 });

@@ -23,10 +23,10 @@ export default function AuthNavigator() {
             <Stack.Screen name="Splash" component={SplashScreen} options={{ headerShown: false }} />
             <Stack.Screen name="Onboarding" component={OnboardingScreen} options={{ headerShown: false }} />
             <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
-            <Stack.Screen name="EsqueciSenha" component={EsqueciSenhaScreen} options={{ title: 'Recuperar senha' }} />
-            <Stack.Screen name="CadastroTipo" component={CadastroTipoScreen} options={{ title: 'Criar conta' }} />
-            <Stack.Screen name="CadastroAluno" component={CadastroAlunoScreen} options={{ title: 'Cadastro de Aluno' }} />
-            <Stack.Screen name="CadastroMedico" component={CadastroMedicoScreen} options={{ title: 'Cadastro de Médico' }} />
+            <Stack.Screen name="EsqueciSenha" component={EsqueciSenhaScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="CadastroTipo" component={CadastroTipoScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="CadastroAluno" component={CadastroAlunoScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="CadastroMedico" component={CadastroMedicoScreen} options={{ headerShown: false }} />
         </Stack.Navigator>
     );
 }

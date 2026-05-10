@@ -1,214 +1,330 @@
 import React, { useEffect, useState } from 'react';
 import {
     View, Text, StyleSheet, ScrollView,
-    ActivityIndicator, TouchableOpacity,
+    ActivityIndicator, TouchableOpacity, TextInput, Alert, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../contexts/AuthContext';
 import CourseServicesMobile, { Module, Lesson } from '../services/courses';
 import QuestionnaireServicesMobile, { Questionnaire } from '../services/questionnaires';
+import CommentsService, { Comment } from '../services/comments';
+import WatchLaterService from '../services/watchLater';
+import FavoritesService from '../services/favorites';
+
+type DetailTab = 'conteudo' | 'questionarios' | 'certificado';
 
 export default function CourseDetailScreen({ route }: any) {
     const { course } = route.params;
+    const { user, userData } = useAuth();
     const navigation = useNavigation<any>();
+
     const [modules, setModules] = useState<(Module & { lessons?: Lesson[] })[]>([]);
+    const [questionnaires, setQuestionnaires] = useState<Questionnaire[]>([]);
+    const [comments, setComments] = useState<Comment[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedModule, setExpandedModule] = useState<string | null>(null);
-    const [questionnaires, setQuestionnaires] = useState<Questionnaire[]>([]);
+    const [tab, setTab] = useState<DetailTab>('conteudo');
+    const [newComment, setNewComment] = useState('');
+    const [isFavorite, setIsFavorite] = useState(false);
+    const [isWatchLater, setIsWatchLater] = useState(false);
 
     useEffect(() => {
-        loadModules();
-        loadQuestionnaires();
+        loadAll();
     }, []);
 
-    const loadModules = async () => {
-        const res = await CourseServicesMobile.getModules(course.id);
-        if (res.success && res.modules) {
-            const modulesWithLessons = await Promise.all(
-                res.modules.map(async (mod) => {
+    const loadAll = async () => {
+        if (!user) return;
+        const [modulesRes, questRes, commentsRes, favIds, watchIds] = await Promise.all([
+            CourseServicesMobile.getModules(course.id),
+            QuestionnaireServicesMobile.getByCourse(course.id),
+            CommentsService.getByCourse(course.id),
+            FavoritesService.getByUser(user.uid),
+            WatchLaterService.getByUser(user.uid),
+        ]);
+
+        if (modulesRes.success && modulesRes.modules) {
+            const withLessons = await Promise.all(
+                modulesRes.modules.map(async (mod) => {
                     const lessonsRes = await CourseServicesMobile.getLessons(course.id, mod.id);
                     return { ...mod, lessons: lessonsRes.lessons ?? [] };
                 })
             );
-            setModules(modulesWithLessons);
+            setModules(withLessons);
         }
+        if (questRes.success && questRes.questionnaires) setQuestionnaires(questRes.questionnaires);
+        setComments(commentsRes);
+        setIsFavorite(favIds.includes(course.id));
+        setIsWatchLater(watchIds.includes(course.id));
         setLoading(false);
     };
 
-    const loadQuestionnaires = async () => {
-        const res = await QuestionnaireServicesMobile.getByCourse(course.id);
-        if (res.success && res.questionnaires) {
-            setQuestionnaires(res.questionnaires);
+    const handleToggleFavorite = async () => {
+        if (!user) return;
+        const result = await FavoritesService.toggle(user.uid, course.id);
+        setIsFavorite(result);
+    };
+
+    const handleToggleWatchLater = async () => {
+        if (!user) return;
+        const result = await WatchLaterService.toggle(user.uid, course.id);
+        setIsWatchLater(result);
+        Alert.alert(result ? 'Adicionado' : 'Removido',
+            result ? 'Curso salvo para assistir mais tarde.' : 'Curso removido da lista.');
+    };
+
+    const handleAddComment = async () => {
+        if (!user || !newComment.trim()) return;
+        const success = await CommentsService.add({
+            userId: user.uid,
+            userName: userData?.name ?? 'Usuário',
+            userPhoto: userData?.photoURL,
+            courseId: course.id,
+            text: newComment.trim(),
+            createdAt: new Date().toISOString(),
+        });
+        if (success) {
+            setNewComment('');
+            const updated = await CommentsService.getByCourse(course.id);
+            setComments(updated);
         }
     };
 
-    const toggleModule = (moduleId: string) => {
-        setExpandedModule(expandedModule === moduleId ? null : moduleId);
-    };
+    const totalLessons = modules.reduce((sum, m) => sum + (m.lessons?.length ?? 0), 0);
 
     return (
-        <ScrollView contentContainerStyle={styles.container}>
-            {/* HEADER INFO */}
-            <View style={styles.headerCard}>
-                <Text style={styles.title}>{course.title}</Text>
-                <Text style={styles.author}>Por {course.authorName}</Text>
-                <Text style={styles.description}>{course.description}</Text>
-
-                <View style={styles.metaRow}>
-                    {course.duration > 0 && (
-                        <View style={styles.metaItem}>
-                            <Ionicons name="time-outline" size={16} color="#2563EB" />
-                            <Text style={styles.metaText}>{course.duration}h</Text>
+        <ScrollView contentContainerStyle={styles.container} bounces={false}>
+            {/* BANNER */}
+            <View style={styles.banner}>
+                {course.coverImage ? (
+                    <Image source={{ uri: course.coverImage }} style={styles.bannerImage} />
+                ) : (
+                    <View style={styles.bannerPlaceholder}>
+                        <Ionicons name="book" size={40} color="#fff" />
+                    </View>
+                )}
+                <View style={styles.bannerOverlay}>
+                    <Text style={styles.bannerTitle}>{course.title}</Text>
+                    <Text style={styles.bannerDesc} numberOfLines={2}>{course.description}</Text>
+                    <Text style={styles.bannerAuthor}>Criado por: {course.authorName}</Text>
+                    <View style={styles.bannerMeta}>
+                        <View style={styles.bannerMetaItem}>
+                            <Ionicons name="layers-outline" size={14} color="#fff" />
+                            <Text style={styles.bannerMetaText}>{modules.length} tópicos</Text>
                         </View>
-                    )}
-                    {course.hasCertificate && (
-                        <View style={styles.metaItem}>
-                            <Ionicons name="ribbon-outline" size={16} color="#D4A017" />
-                            <Text style={styles.metaText}>Certificado</Text>
+                        <View style={styles.bannerMetaItem}>
+                            <Ionicons name="time-outline" size={14} color="#fff" />
+                            <Text style={styles.bannerMetaText}>{course.duration}h</Text>
                         </View>
-                    )}
-                    {course.verified && (
-                        <View style={styles.metaItem}>
-                            <Ionicons name="checkmark-circle" size={16} color="#0D9488" />
-                            <Text style={styles.metaText}>Verificado</Text>
-                        </View>
-                    )}
+                    </View>
+                    <View style={[styles.typeBadge, course.verified ? styles.typeBadgeOfficial : styles.typeBadgeCommunity]}>
+                        <Text style={styles.typeBadgeText}>
+                            {course.verified ? 'Curso Oficial' : 'Curso da Comunidade'}
+                        </Text>
+                    </View>
                 </View>
             </View>
 
-            {/* CONTEÚDO DO CURSO */}
-            <Text style={styles.sectionTitle}>Conteúdo do Curso</Text>
+            {/* ACTION BUTTONS */}
+            <View style={styles.actionRow}>
+                <TouchableOpacity style={styles.actionBtn} onPress={handleToggleFavorite}>
+                    <Ionicons name={isFavorite ? 'star' : 'star-outline'} size={22} color="#D4A017" />
+                    <Text style={styles.actionText}>{isFavorite ? 'Favoritado' : 'Favoritar'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.actionBtn} onPress={handleToggleWatchLater}>
+                    <Ionicons name={isWatchLater ? 'bookmark' : 'bookmark-outline'} size={22} color="#2563EB" />
+                    <Text style={styles.actionText}>{isWatchLater ? 'Salvo' : 'Assistir depois'}</Text>
+                </TouchableOpacity>
+            </View>
 
-            {loading ? (
-                <ActivityIndicator size="large" color="#2563EB" style={{ marginTop: 20 }} />
-            ) : modules.length === 0 ? (
-                <View style={styles.emptyCard}>
-                    <Text style={styles.emptyText}>Nenhum módulo disponível ainda.</Text>
-                </View>
-            ) : (
-                modules.map((mod, index) => (
-                    <View key={mod.id} style={styles.moduleCard}>
-                        <TouchableOpacity
-                            style={styles.moduleHeader}
-                            onPress={() => toggleModule(mod.id)}
-                        >
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.moduleTitle}>
-                                    Módulo {index + 1}: {mod.title}
-                                </Text>
-                                <Text style={styles.lessonCount}>
-                                    {mod.lessons?.length ?? 0} aula(s)
-                                </Text>
-                            </View>
-                            <Ionicons
-                                name={expandedModule === mod.id ? 'chevron-up' : 'chevron-down'}
-                                size={20}
-                                color="#666"
-                            />
-                        </TouchableOpacity>
+            {/* TABS */}
+            <View style={styles.tabContainer}>
+                {(['conteudo', 'questionarios', 'certificado'] as DetailTab[]).map(t => (
+                    <TouchableOpacity key={t} style={styles.tab} onPress={() => setTab(t)}>
+                        <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>
+                            {t === 'conteudo' ? 'Conteúdo' : t === 'questionarios' ? 'Questionários' : 'Certificado'}
+                        </Text>
+                        {tab === t && <View style={styles.tabBar} />}
+                    </TouchableOpacity>
+                ))}
+            </View>
 
-                        {expandedModule === mod.id && mod.lessons && (
-                            <View style={styles.lessonsContainer}>
-                                {mod.lessons.map((lesson) => (
-                                    <View key={lesson.id} style={styles.lessonItem}>
-                                        <Ionicons
-                                            name={lesson.videoURL ? 'play-circle' : 'document-text-outline'}
-                                            size={18}
-                                            color="#2563EB"
-                                        />
-                                        <Text style={styles.lessonTitle}>{lesson.title}</Text>
-                                        {lesson.duration > 0 && (
-                                            <Text style={styles.lessonDuration}>{lesson.duration} min</Text>
-                                        )}
+            {/* TAB: CONTEÚDO */}
+            {tab === 'conteudo' && (
+                <View style={styles.section}>
+                    {loading ? (
+                        <ActivityIndicator size="large" color="#2563EB" style={{ marginTop: 20 }} />
+                    ) : modules.length === 0 ? (
+                        <View style={styles.emptyCard}>
+                            <Text style={styles.emptyText}>Nenhum módulo disponível.</Text>
+                        </View>
+                    ) : (
+                        modules.map((mod, index) => (
+                            <View key={mod.id} style={styles.moduleCard}>
+                                <TouchableOpacity style={styles.moduleHeader}
+                                    onPress={() => setExpandedModule(expandedModule === mod.id ? null : mod.id)}>
+                                    <Text style={styles.moduleTitle}>Tópico {index + 1}: {mod.title}</Text>
+                                    <Ionicons name={expandedModule === mod.id ? 'chevron-up' : 'chevron-down'} size={20} color="#666" />
+                                </TouchableOpacity>
+                                {expandedModule === mod.id && mod.lessons && (
+                                    <View style={styles.lessonsContainer}>
+                                        {mod.lessons.map((lesson) => (
+                                            <TouchableOpacity key={lesson.id} style={styles.lessonItem}
+                                                onPress={() => navigation.navigate('Lesson', { lesson, course })}>
+                                                <Ionicons name={lesson.videoURL ? 'play-circle' : 'document-text-outline'} size={18} color="#2563EB" />
+                                                <Text style={styles.lessonTitle}>{lesson.title}</Text>
+                                                {lesson.duration > 0 && <Text style={styles.lessonDuration}>{lesson.duration} min</Text>}
+                                            </TouchableOpacity>
+                                        ))}
+                                        {mod.lessons.length === 0 && <Text style={styles.noLessons}>Nenhuma aula neste módulo.</Text>}
                                     </View>
-                                ))}
-                                {mod.lessons.length === 0 && (
-                                    <Text style={styles.noLessons}>Nenhuma aula neste módulo.</Text>
                                 )}
                             </View>
-                        )}
-                    </View>
-                ))
+                        ))
+                    )}
+                </View>
             )}
 
-            {/* QUESTIONÁRIOS DO CURSO */}
-            {questionnaires.length > 0 && (
-                <>
-                    <Text style={styles.sectionTitle}>Questionários</Text>
-                    {questionnaires.map((q) => (
-                        <TouchableOpacity
-                            key={q.id}
-                            style={styles.quizCard}
-                            onPress={() => navigation.navigate('Quiz', { questionnaire: q })}
-                        >
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.quizTitle}>{q.title}</Text>
-                                <Text style={styles.quizType}>
-                                    {q.type === 'pre_content' ? 'Nivelamento (antes do curso)'
-                                        : q.type === 'post_content' ? 'Avaliação (após o curso)'
-                                        : 'Nivelamento geral'}
-                                </Text>
-                                {q.timeLimit && (
-                                    <Text style={styles.quizMeta}>Tempo: {q.timeLimit} min</Text>
-                                )}
-                            </View>
-                            <Ionicons name="play-circle" size={28} color="#2563EB" />
-                        </TouchableOpacity>
-                    ))}
-                </>
+            {/* TAB: QUESTIONÁRIOS */}
+            {tab === 'questionarios' && (
+                <View style={styles.section}>
+                    {questionnaires.length === 0 ? (
+                        <View style={styles.emptyCard}>
+                            <Text style={styles.emptyText}>Nenhum questionário disponível.</Text>
+                        </View>
+                    ) : (
+                        questionnaires.map((q) => (
+                            <TouchableOpacity key={q.id} style={styles.quizCard}
+                                onPress={() => navigation.navigate('Quiz', { questionnaire: q })}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.quizTitle}>{q.title}</Text>
+                                    <Text style={styles.quizType}>
+                                        {q.type === 'pre_content' ? 'Nivelamento' : q.type === 'post_content' ? 'Avaliação final' : 'Geral'}
+                                    </Text>
+                                </View>
+                                <Ionicons name="play-circle" size={28} color="#2563EB" />
+                            </TouchableOpacity>
+                        ))
+                    )}
+                </View>
             )}
+
+            {/* TAB: CERTIFICADO */}
+            {tab === 'certificado' && (
+                <View style={styles.section}>
+                    <View style={styles.certCard}>
+                        <Ionicons name="ribbon" size={40} color="#D4A017" />
+                        <Text style={styles.certTitle}>Certificado</Text>
+                        <Text style={styles.certDesc}>
+                            {course.hasCertificate
+                                ? 'Conclua o curso e seja aprovado na avaliação final para receber seu certificado digital.'
+                                : 'Este curso não oferece certificado.'}
+                        </Text>
+                    </View>
+                </View>
+            )}
+
+            {/* COMENTÁRIOS */}
+            <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Comentários ({comments.length})</Text>
+
+                {comments.map((c) => (
+                    <View key={c.id} style={styles.commentItem}>
+                        <View style={styles.commentAvatar}>
+                            <Text style={styles.commentAvatarText}>{c.userName.charAt(0)}</Text>
+                        </View>
+                        <View style={styles.commentContent}>
+                            <Text style={styles.commentAuthor}>{c.userName}</Text>
+                            <Text style={styles.commentText}>{c.text}</Text>
+                        </View>
+                    </View>
+                ))}
+
+                <Text style={styles.commentLabel}>Sua Mensagem</Text>
+                <TextInput
+                    style={styles.commentInput}
+                    placeholder="O que você achou deste tópico?"
+                    placeholderTextColor="#aaa"
+                    multiline
+                    value={newComment}
+                    onChangeText={setNewComment}
+                />
+                <TouchableOpacity style={styles.commentBtn} onPress={handleAddComment}>
+                    <Text style={styles.commentBtnText}>Adicionar comentário</Text>
+                </TouchableOpacity>
+            </View>
         </ScrollView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flexGrow: 1, padding: 20, backgroundColor: '#F0F4F8' },
-    headerCard: {
-        backgroundColor: '#fff', borderRadius: 12, padding: 20,
-        marginBottom: 20, shadowColor: '#000', shadowOpacity: 0.05,
-        shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2,
-    },
-    title: { fontSize: 22, fontWeight: 'bold', color: '#0A1628', marginBottom: 4 },
-    author: { fontSize: 14, color: '#2563EB', marginBottom: 12 },
-    description: { fontSize: 14, color: '#555', lineHeight: 20, marginBottom: 16 },
-    metaRow: { flexDirection: 'row', gap: 16 },
-    metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    metaText: { fontSize: 13, color: '#555' },
-    sectionTitle: { fontSize: 18, fontWeight: '700', color: '#0A1628', marginBottom: 12, marginTop: 8 },
-    moduleCard: {
-        backgroundColor: '#fff', borderRadius: 10, marginBottom: 10,
-        shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 4,
-        shadowOffset: { width: 0, height: 1 }, elevation: 1,
-        overflow: 'hidden',
-    },
-    moduleHeader: {
-        flexDirection: 'row', alignItems: 'center',
-        padding: 16, justifyContent: 'space-between',
-    },
-    moduleTitle: { fontSize: 15, fontWeight: '600', color: '#0A1628' },
-    lessonCount: { fontSize: 12, color: '#888', marginTop: 2 },
-    lessonsContainer: { paddingHorizontal: 16, paddingBottom: 12, borderTopWidth: 1, borderTopColor: '#f0f0f0' },
-    lessonItem: {
-        flexDirection: 'row', alignItems: 'center',
-        paddingVertical: 10, gap: 10,
-        borderBottomWidth: 1, borderBottomColor: '#f5f5f5',
-    },
-    lessonTitle: { flex: 1, fontSize: 14, color: '#333' },
+    container: { flexGrow: 1, backgroundColor: '#F0F4F8' },
+
+    // BANNER
+    banner: { height: 220, position: 'relative' },
+    bannerImage: { width: '100%', height: '100%' },
+    bannerPlaceholder: { width: '100%', height: '100%', backgroundColor: '#172F50', justifyContent: 'center', alignItems: 'center' },
+    bannerOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: 'rgba(10,22,40,0.7)' },
+    bannerTitle: { fontSize: 20, fontWeight: 'bold', color: '#fff', marginBottom: 4 },
+    bannerDesc: { fontSize: 12, color: '#ccc', marginBottom: 4 },
+    bannerAuthor: { fontSize: 12, color: '#B0BEC5', marginBottom: 8 },
+    bannerMeta: { flexDirection: 'row', gap: 16, marginBottom: 8 },
+    bannerMetaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    bannerMetaText: { fontSize: 12, color: '#fff' },
+    typeBadge: { alignSelf: 'flex-start', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+    typeBadgeOfficial: { backgroundColor: '#2563EB' },
+    typeBadgeCommunity: { backgroundColor: '#D4A017' },
+    typeBadgeText: { fontSize: 11, fontWeight: '600', color: '#fff' },
+
+    // ACTIONS
+    actionRow: { flexDirection: 'row', backgroundColor: '#fff', paddingVertical: 12, paddingHorizontal: 20, gap: 24 },
+    actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    actionText: { fontSize: 13, color: '#555', fontWeight: '500' },
+
+    // TABS
+    tabContainer: { flexDirection: 'row', backgroundColor: '#fff', paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: '#eee' },
+    tab: { marginRight: 20, paddingVertical: 12, alignItems: 'center' },
+    tabText: { fontSize: 14, color: '#999', fontWeight: '500' },
+    tabTextActive: { color: '#2563EB', fontWeight: '700' },
+    tabBar: { width: '100%', height: 3, backgroundColor: '#2563EB', borderRadius: 2, marginTop: 4 },
+
+    // SECTION
+    section: { padding: 16 },
+    sectionTitle: { fontSize: 16, fontWeight: '700', color: '#0A1628', marginBottom: 12 },
+
+    // MODULES
+    moduleCard: { backgroundColor: '#fff', borderRadius: 10, marginBottom: 8, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+    moduleHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14 },
+    moduleTitle: { fontSize: 14, fontWeight: '600', color: '#0A1628', flex: 1 },
+    lessonsContainer: { paddingHorizontal: 14, paddingBottom: 10, borderTopWidth: 1, borderTopColor: '#f0f0f0' },
+    lessonItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 10, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
+    lessonTitle: { flex: 1, fontSize: 13, color: '#333' },
     lessonDuration: { fontSize: 12, color: '#999' },
     noLessons: { fontSize: 13, color: '#999', paddingVertical: 10 },
-    emptyCard: {
-        backgroundColor: '#fff', borderRadius: 10, padding: 20,
-        alignItems: 'center',
-    },
-    emptyText: { fontSize: 14, color: '#888' },
-    quizCard: {
-        backgroundColor: '#fff', borderRadius: 10, padding: 16,
-        marginBottom: 10, flexDirection: 'row', alignItems: 'center',
-        borderLeftWidth: 4, borderLeftColor: '#2563EB',
-        shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 4,
-        shadowOffset: { width: 0, height: 1 }, elevation: 1,
-    },
-    quizTitle: { fontSize: 15, fontWeight: '600', color: '#0A1628' },
+
+    // QUIZ
+    quizCard: { backgroundColor: '#fff', borderRadius: 10, padding: 14, marginBottom: 8, flexDirection: 'row', alignItems: 'center', borderLeftWidth: 4, borderLeftColor: '#2563EB', shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+    quizTitle: { fontSize: 14, fontWeight: '600', color: '#0A1628' },
     quizType: { fontSize: 12, color: '#2563EB', marginTop: 2 },
-    quizMeta: { fontSize: 12, color: '#888', marginTop: 2 },
+
+    // CERTIFICATE
+    certCard: { backgroundColor: '#fff', borderRadius: 14, padding: 24, alignItems: 'center', gap: 8 },
+    certTitle: { fontSize: 18, fontWeight: '700', color: '#0A1628' },
+    certDesc: { fontSize: 13, color: '#888', textAlign: 'center', lineHeight: 20 },
+
+    // COMMENTS
+    commentItem: { flexDirection: 'row', marginBottom: 14, gap: 10 },
+    commentAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#2563EB', justifyContent: 'center', alignItems: 'center' },
+    commentAvatarText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+    commentContent: { flex: 1, backgroundColor: '#fff', borderRadius: 10, padding: 10 },
+    commentAuthor: { fontSize: 13, fontWeight: '700', color: '#0A1628', marginBottom: 2 },
+    commentText: { fontSize: 13, color: '#555', lineHeight: 18 },
+    commentLabel: { fontSize: 14, fontWeight: '600', color: '#333', marginTop: 8, marginBottom: 6 },
+    commentInput: { backgroundColor: '#fff', borderRadius: 10, borderWidth: 1, borderColor: '#ddd', padding: 12, height: 80, fontSize: 14, color: '#333', textAlignVertical: 'top', marginBottom: 10 },
+    commentBtn: { backgroundColor: '#0A1628', borderRadius: 8, paddingVertical: 12, alignItems: 'center' },
+    commentBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+
+    // EMPTY
+    emptyCard: { backgroundColor: '#fff', borderRadius: 10, padding: 20, alignItems: 'center' },
+    emptyText: { fontSize: 14, color: '#888' },
 });
