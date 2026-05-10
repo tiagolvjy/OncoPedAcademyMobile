@@ -113,10 +113,11 @@ export default function CadastroAlunoScreen({ navigation }: any) {
             role: 'student',
         });
         setLoading(false);
-        if (success) {
-            Alert.alert('Sucesso!', 'Cadastro realizado com sucesso!', [
-                { text: 'Fazer login', onPress: () => navigation.navigate('Login') },
-            ]);
+            if (success) {
+                Alert.alert(
+                    'Conta criada com sucesso! 🎉',
+                    'Bem-vindo à OncoPed Academy! Sua jornada de aprendizado em oncologia pediátrica começa agora.'
+                );
         } else {
             Alert.alert('Erro', error ?? 'Erro ao realizar cadastro.');
         }

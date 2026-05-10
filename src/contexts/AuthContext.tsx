@@ -22,10 +22,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [userData, setUserData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
-    const fetchUserData = async (uid: string) => {
+    const fetchUserData = async (uid: string, retries = 3): Promise<void> => {
         try {
             const snap = await getDoc(doc(db, 'users', uid));
-            setUserData(snap.exists() ? { id: snap.id, ...snap.data() } : null);
+            if (snap.exists()) {
+                setUserData({ id: snap.id, ...snap.data() });
+            } else if (retries > 0) {
+                // Documento pode não existir ainda (cadastro em andamento)
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                return fetchUserData(uid, retries - 1);
+            } else {
+                setUserData(null);
+            }
         } catch {
             setUserData(null);
         }
