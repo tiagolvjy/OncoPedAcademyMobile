@@ -261,10 +261,10 @@ const styles = StyleSheet.create({
     container: { flexGrow: 1, backgroundColor: '#F0F4F8' },
 
     // BANNER
-    banner: { height: 220, position: 'relative' },
+    banner: { height: 260, position: 'relative' },
     bannerImage: { width: '100%', height: '100%' },
-    bannerPlaceholder: { width: '100%', height: '100%', backgroundColor: '#172F50', justifyContent: 'center', alignItems: 'center' },
-    bannerOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: 'rgba(10,22,40,0.7)' },
+    bannerPlaceholder: { width: '100%', height: '100%', backgroundColor: '#0A1628', justifyContent: 'center', alignItems: 'center' },
+    bannerOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, paddingTop: 50, backgroundColor: 'rgba(10,22,40,0.7)', },
     bannerTitle: { fontSize: 20, fontWeight: 'bold', color: '#fff', marginBottom: 4 },
     bannerDesc: { fontSize: 12, color: '#ccc', marginBottom: 4 },
     bannerAuthor: { fontSize: 12, color: '#B0BEC5', marginBottom: 8 },

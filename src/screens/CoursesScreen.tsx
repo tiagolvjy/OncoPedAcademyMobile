@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import {
     View, Text, StyleSheet, FlatList, TextInput,
     TouchableOpacity, ActivityIndicator, RefreshControl, Image,
-    Alert, Modal,
+    Alert, Modal, ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -10,6 +10,8 @@ import { useAuth } from '../contexts/AuthContext';
 import CourseServicesMobile, { Course } from '../services/courses';
 import FavoritesService from '../services/favorites';
 import PlaylistsService, { Playlist } from '../services/playlists';
+import WatchLaterService from '../services/watchLater';
+
 
 type TabType = 'todos' | 'playlists' | 'favoritos';
 
@@ -25,6 +27,7 @@ export default function CoursesScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const [showPlaylistModal, setShowPlaylistModal] = useState(false);
     const [playlistName, setPlaylistName] = useState('');
+    const [watchLaterIds, setWatchLaterIds] = useState<string[]>([]);
 
     const firstName = userData?.name?.split(' ')[0] ?? 'Usuário';
 
@@ -36,14 +39,16 @@ export default function CoursesScreen() {
 
     const loadData = async () => {
         if (!user) return;
-        const [coursesRes, favIds, playlistsRes] = await Promise.all([
+        const [coursesRes, favIds, playlistsRes, watchIds] = await Promise.all([
             CourseServicesMobile.getPublished(),
             FavoritesService.getByUser(user.uid),
             PlaylistsService.getByUser(user.uid),
+            WatchLaterService.getByUser(user.uid),
         ]);
         if (coursesRes.success && coursesRes.courses) setCourses(coursesRes.courses);
         setFavoriteIds(favIds);
         setPlaylists(playlistsRes);
+        setWatchLaterIds(watchIds);
         setLoading(false);
         setRefreshing(false);
     };
@@ -181,26 +186,51 @@ export default function CoursesScreen() {
             )}
 
             {tab === 'playlists' && (
-                <FlatList
-                    data={playlists}
-                    keyExtractor={(item) => item.id!}
-                    renderItem={renderPlaylist}
-                    numColumns={2}
-                    columnWrapperStyle={{ gap: 12 }}
-                    contentContainerStyle={styles.list}
-                    ListHeaderComponent={
-                        <TouchableOpacity style={styles.createPlaylistBtn} onPress={() => setShowPlaylistModal(true)}>
-                            <Ionicons name="add-circle-outline" size={18} color="#2563EB" />
-                            <Text style={styles.createPlaylistText}>Criar playlist</Text>
-                        </TouchableOpacity>
-                    }
-                    ListEmptyComponent={
+                <ScrollView contentContainerStyle={styles.list}>
+                    {/* ASSISTIR DEPOIS */}
+                    <TouchableOpacity
+                        style={styles.watchLaterPlaylist}
+                        onPress={() => {
+                            const watchLaterCourses = courses.filter(c => watchLaterIds.includes(c.id));
+                            navigation.navigate('WatchLaterList', { courses: watchLaterCourses });
+                        }}
+                    >
+                        <View style={styles.watchLaterIcon}>
+                            <Ionicons name="time-outline" size={28} color="#fff" />
+                        </View>
+                        <View style={styles.watchLaterInfo}>
+                            <Text style={styles.watchLaterTitle}>Assistir depois</Text>
+                            <Text style={styles.watchLaterCount}>{watchLaterIds.length} curso(s)</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                    </TouchableOpacity>
+
+                    {/* CRIAR PLAYLIST */}
+                    <TouchableOpacity style={styles.createPlaylistBtn} onPress={() => setShowPlaylistModal(true)}>
+                        <Ionicons name="add-circle-outline" size={18} color="#2563EB" />
+                        <Text style={styles.createPlaylistText}>Criar playlist</Text>
+                    </TouchableOpacity>
+
+                    {/* PLAYLISTS DO USUÁRIO */}
+                    {playlists.length === 0 ? (
                         <View style={styles.emptyContainer}>
                             <Ionicons name="list-outline" size={48} color="#ccc" />
                             <Text style={styles.emptyText}>Nenhuma playlist criada.</Text>
                         </View>
-                    }
-                />
+                    ) : (
+                        <View style={styles.playlistGrid}>
+                            {playlists.map((item) => (
+                                <TouchableOpacity key={item.id} style={styles.playlistCard}>
+                                    <View style={styles.playlistImagePlaceholder}>
+                                        <Ionicons name="list" size={32} color="#fff" />
+                                    </View>
+                                    <Text style={styles.playlistName}>{item.name}</Text>
+                                    <Text style={styles.playlistCount}>{item.courseIds?.length ?? 0} Vídeos</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    )}
+                </ScrollView>
             )}
 
             {tab === 'favoritos' && (
@@ -316,6 +346,20 @@ const styles = StyleSheet.create({
     playlistCount: { fontSize: 12, color: '#888', paddingHorizontal: 10, paddingBottom: 10 },
     createPlaylistBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 },
     createPlaylistText: { fontSize: 14, color: '#2563EB', fontWeight: '600' },
+    watchLaterPlaylist: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff',
+    borderRadius: 14, padding: 16, marginBottom: 16,
+    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 }, elevation: 2,
+    },
+    watchLaterIcon: {
+        width: 52, height: 52, borderRadius: 12, backgroundColor: '#2563EB',
+        justifyContent: 'center', alignItems: 'center', marginRight: 14,
+    },
+    watchLaterInfo: { flex: 1 },
+    watchLaterTitle: { fontSize: 16, fontWeight: '700', color: '#0A1628' },
+    watchLaterCount: { fontSize: 13, color: '#888', marginTop: 2 },
+    playlistGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
 
     // MODAL
     modalOverlay: {

@@ -130,7 +130,8 @@ const QuestionnaireServicesMobile = {
             const snapshot = await getDocs(q);
             const results = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as QuizResult));
             return { success: true, results };
-        } catch {
+        } catch (error) {
+            console.error('Erro getUserResults:', error);
             return { success: false };
         }
     },
