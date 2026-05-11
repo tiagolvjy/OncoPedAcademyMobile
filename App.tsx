@@ -1,9 +1,19 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { ActivityIndicator, View } from 'react-native';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import AuthNavigator from './src/navigation/AuthNavigator';
 import TabNavigator from './src/navigation/TabNavigator';
+
+// ExecuTorch init com fallback
+try {
+    const { initExecutorch } = require('react-native-executorch');
+    const { ExpoResourceFetcher } = require('react-native-executorch-expo-resource-fetcher');
+    initExecutorch({ resourceFetcher: ExpoResourceFetcher });
+    console.log('ExecuTorch inicializado com sucesso');
+} catch (error) {
+    console.warn('ExecuTorch não disponível (Expo Go). IA offline desabilitada.');
+}
 
 function RootNavigator() {
     const { user, loading } = useAuth();
