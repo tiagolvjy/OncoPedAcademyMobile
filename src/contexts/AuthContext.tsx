@@ -7,12 +7,14 @@ interface AuthContextData {
     user: User | null;
     userData: any | null;
     loading: boolean;
+    refreshUserData: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextData>({
     user: null,
     userData: null,
     loading: true,
+    refreshUserData: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -20,16 +22,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [userData, setUserData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
+    const fetchUserData = async (uid: string, retries = 3): Promise<void> => {
+        try {
+            const snap = await getDoc(doc(db, 'users', uid));
+            if (snap.exists()) {
+                setUserData({ id: snap.id, ...snap.data() });
+            } else if (retries > 0) {
+                // Documento pode não existir ainda (cadastro em andamento)
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                return fetchUserData(uid, retries - 1);
+            } else {
+                setUserData(null);
+            }
+        } catch {
+            setUserData(null);
+        }
+    };
+
+    const refreshUserData = async () => {
+        if (user) {
+            await fetchUserData(user.uid);
+        }
+    };
+
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             setUser(firebaseUser);
             if (firebaseUser) {
-                try {
-                    const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
-                    setUserData(snap.exists() ? { id: snap.id, ...snap.data() } : null);
-                } catch {
-                    setUserData(null);
-                }
+                await fetchUserData(firebaseUser.uid);
             } else {
                 setUserData(null);
             }
@@ -39,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     return (
-        <AuthContext.Provider value={{ user, userData, loading }}>
+        <AuthContext.Provider value={{ user, userData, loading, refreshUserData }}>
             {children}
         </AuthContext.Provider>
     );

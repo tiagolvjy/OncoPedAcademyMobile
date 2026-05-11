@@ -46,10 +46,13 @@ const AuthServices = {
             return { success: true };
         } catch (error: any) {
             if (error.code === 'auth/email-already-in-use')
-                return { success: false, error: 'Email já cadastrado.' };
+                return { success: false, error: 'Este email já está cadastrado.' };
             if (error.code === 'auth/weak-password')
-                return { success: false, error: 'Senha muito fraca.' };
-            return { success: false, error: 'Erro ao realizar cadastro.' };
+                return { success: false, error: 'Senha muito fraca. Use pelo menos 8 caracteres.' };
+            if (error.code === 'auth/invalid-email')
+                return { success: false, error: 'Email inválido. Verifique o formato (ex: nome@email.com).' };
+            console.error('Erro cadastro:', error);
+            return { success: false, error: 'Erro ao realizar cadastro. Tente novamente.' };
         }
     },
 
@@ -97,10 +100,13 @@ const AuthServices = {
             return { success: true };
         } catch (error: any) {
             if (error.code === 'auth/email-already-in-use')
-                return { success: false, error: 'Email já cadastrado.' };
+                return { success: false, error: 'Este email já está cadastrado.' };
             if (error.code === 'auth/weak-password')
-                return { success: false, error: 'Senha muito fraca.' };
-            return { success: false, error: 'Erro ao realizar cadastro.' };
+                return { success: false, error: 'Senha muito fraca. Use pelo menos 8 caracteres.' };
+            if (error.code === 'auth/invalid-email')
+                return { success: false, error: 'Email inválido. Verifique o formato (ex: nome@email.com).' };
+            console.error('Erro cadastro:', error);
+            return { success: false, error: 'Erro ao realizar cadastro. Tente novamente.' };
         }
     },
 
@@ -116,6 +122,8 @@ const AuthServices = {
             ) return { success: false, error: 'Email ou senha incorretos.' };
             if (error.code === 'auth/too-many-requests')
                 return { success: false, error: 'Muitas tentativas. Tente mais tarde.' };
+            if (error.code === 'auth/invalid-email')
+                return { success: false, error: 'Email inválido. Verifique o formato.' };
             return { success: false, error: 'Erro ao realizar login.' };
         }
     },
@@ -136,6 +144,8 @@ const AuthServices = {
         } catch (error: any) {
             if (error.code === 'auth/user-not-found')
                 return { success: false, error: 'Email não encontrado.' };
+            if (error.code === 'auth/invalid-email')
+                return { success: false, error: 'Email inválido. Verifique o formato.' };
             return { success: false, error: 'Erro ao enviar email.' };
         }
     },

@@ -150,10 +150,12 @@ export default function CadastroMedicoScreen({ navigation }: any) {
             role: 'doctor',
         });
         setLoading(false);
-        if (success) {
-            Alert.alert('Sucesso!', 'Cadastro realizado! Aguarde a verificação do seu CRM.', [
-                { text: 'Fazer login', onPress: () => navigation.navigate('Login') },
-            ]);
+                if (success) {
+                    Alert.alert(
+                        'Conta criada com sucesso! 🎉',
+                        'Bem-vindo à OncoPed Academy! Seu CRM será verificado pela equipe. Enquanto isso, explore os cursos disponíveis.'
+                    );
+
         } else {
             Alert.alert('Erro', error ?? 'Erro ao realizar cadastro.');
         }

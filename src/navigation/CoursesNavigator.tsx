@@ -4,6 +4,7 @@ import CoursesScreen from '../screens/CoursesScreen';
 import CourseDetailScreen from '../screens/CourseDetailScreen';
 import QuizScreen from '../screens/QuizScreen';
 import LessonScreen from '../screens/LessonScreen';
+import WatchLaterListScreen from '../screens/WatchLaterListScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -24,7 +25,13 @@ export default function CoursesNavigator() {
             <Stack.Screen
                 name="CourseDetail"
                 component={CourseDetailScreen}
-                options={{ title: 'Detalhes do Curso' }}
+                options={{
+                    title: '',
+                    headerTransparent: true,
+                    headerTintColor: '#fff',
+                    headerStyle: { backgroundColor: 'transparent' },
+                    headerShadowVisible: false,
+                }}
             />
             <Stack.Screen
                 name="Lesson"
@@ -41,6 +48,11 @@ export default function CoursesNavigator() {
                     headerBackVisible: false,
                     gestureEnabled: false,
                 })}
+            />
+            <Stack.Screen
+                name="WatchLaterList"
+                component={WatchLaterListScreen}
+                options={{ title: 'Assistir mais tarde' }}
             />
         </Stack.Navigator>
     );

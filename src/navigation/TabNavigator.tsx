@@ -37,8 +37,8 @@ export default function TabNavigator() {
         >
             <Tab.Screen name="Início" component={HomeScreen} options={{ headerShown: false }} />
             <Tab.Screen name="Cursos" component={CoursesNavigator} options={{ headerShown: false }} />
-            <Tab.Screen name="IA Dicas" component={AIScreen} />
+            <Tab.Screen name="IA Dicas" component={AIScreen} options={{ headerShown: false }} />
             <Tab.Screen name="Perfil" component={ProfileNavigator} options={{ headerShown: false }} />
         </Tab.Navigator>
     );
-}
+} 
