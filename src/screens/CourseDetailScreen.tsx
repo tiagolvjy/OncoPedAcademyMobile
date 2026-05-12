@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
     View, Text, StyleSheet, ScrollView,
-    ActivityIndicator, TouchableOpacity, TextInput, Alert, Image,
+    ActivityIndicator, TouchableOpacity, TextInput, Alert, Image, Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -11,6 +11,7 @@ import QuestionnaireServicesMobile, { Questionnaire } from '../services/question
 import CommentsService, { Comment } from '../services/comments';
 import WatchLaterService from '../services/watchLater';
 import FavoritesService from '../services/favorites';
+import PlaylistsService, { Playlist } from '../services/playlists';
 
 type DetailTab = 'conteudo' | 'questionarios' | 'certificado';
 
@@ -28,6 +29,8 @@ export default function CourseDetailScreen({ route }: any) {
     const [newComment, setNewComment] = useState('');
     const [isFavorite, setIsFavorite] = useState(false);
     const [isWatchLater, setIsWatchLater] = useState(false);
+    const [playlists, setPlaylists] = useState<Playlist[]>([]);
+    const [showPlaylistPicker, setShowPlaylistPicker] = useState(false);
 
     useEffect(() => {
         loadAll();
@@ -35,12 +38,13 @@ export default function CourseDetailScreen({ route }: any) {
 
     const loadAll = async () => {
         if (!user) return;
-        const [modulesRes, questRes, commentsRes, favIds, watchIds] = await Promise.all([
+        const [modulesRes, questRes, commentsRes, favIds, watchIds, playlistsRes] = await Promise.all([
             CourseServicesMobile.getModules(course.id),
             QuestionnaireServicesMobile.getByCourse(course.id),
             CommentsService.getByCourse(course.id),
             FavoritesService.getByUser(user.uid),
             WatchLaterService.getByUser(user.uid),
+            PlaylistsService.getByUser(user.uid),
         ]);
 
         if (modulesRes.success && modulesRes.modules) {
@@ -56,6 +60,7 @@ export default function CourseDetailScreen({ route }: any) {
         setComments(commentsRes);
         setIsFavorite(favIds.includes(course.id));
         setIsWatchLater(watchIds.includes(course.id));
+        setPlaylists(playlistsRes);
         setLoading(false);
     };
 
@@ -135,6 +140,10 @@ export default function CourseDetailScreen({ route }: any) {
                     <Ionicons name={isWatchLater ? 'bookmark' : 'bookmark-outline'} size={22} color="#2563EB" />
                     <Text style={styles.actionText}>{isWatchLater ? 'Salvo' : 'Assistir depois'}</Text>
                 </TouchableOpacity>
+                <TouchableOpacity style={styles.actionBtn} onPress={() => setShowPlaylistPicker(true)}>
+                    <Ionicons name="add-circle-outline" size={22} color="#0D9488" />
+                    <Text style={styles.actionText}>Playlist</Text>
+                </TouchableOpacity>
             </View>
 
             {/* TABS */}
@@ -213,13 +222,21 @@ export default function CourseDetailScreen({ route }: any) {
             {tab === 'certificado' && (
                 <View style={styles.section}>
                     <View style={styles.certCard}>
-                        <Ionicons name="ribbon" size={40} color="#D4A017" />
+                        <Ionicons
+                            name={course.hasCertificate ? 'ribbon' : 'ribbon-outline'}
+                            size={40}
+                            color={course.hasCertificate ? '#D4A017' : '#ccc'}
+                        />
                         <Text style={styles.certTitle}>Certificado</Text>
-                        <Text style={styles.certDesc}>
-                            {course.hasCertificate
-                                ? 'Conclua o curso e seja aprovado na avaliação final para receber seu certificado digital.'
-                                : 'Este curso não oferece certificado.'}
-                        </Text>
+                        {course.hasCertificate ? (
+                            <Text style={styles.certDesc}>
+                                Conclua o curso e seja aprovado na avaliação final para receber seu certificado digital.
+                            </Text>
+                        ) : (
+                            <Text style={styles.certDesc}>
+                                Este curso <Text style={styles.certBold}>NÃO</Text> oferece certificado.
+                            </Text>
+                        )}
                     </View>
                 </View>
             )}
@@ -253,6 +270,52 @@ export default function CourseDetailScreen({ route }: any) {
                     <Text style={styles.commentBtnText}>Adicionar comentário</Text>
                 </TouchableOpacity>
             </View>
+
+            {/* MODAL ADICIONAR À PLAYLIST */}
+            <Modal visible={showPlaylistPicker} transparent animationType="fade">
+                <View style={styles.playlistModalOverlay}>
+                    <View style={styles.playlistModalCard}>
+                        <Text style={styles.playlistModalTitle}>Adicionar à Playlist</Text>
+                        {playlists.length === 0 ? (
+                            <Text style={styles.playlistModalEmpty}>Nenhuma playlist criada ainda.</Text>
+                        ) : (
+                            playlists.map((pl) => {
+                                const alreadyAdded = pl.courseIds?.includes(course.id);
+                                return (
+                                    <TouchableOpacity key={pl.id} style={styles.playlistModalItem}
+                                        onPress={async () => {
+                                            if (!pl.id) return;
+                                            const newIds = alreadyAdded
+                                                ? (pl.courseIds ?? []).filter((id: string) => id !== course.id)
+                                                : [...(pl.courseIds ?? []), course.id];
+                                            await PlaylistsService.addCourse(pl.id, newIds);
+                                            // Atualiza playlists locais
+                                            setPlaylists(prev => prev.map(p =>
+                                                p.id === pl.id ? { ...p, courseIds: newIds } : p
+                                            ));
+                                            Alert.alert(
+                                                alreadyAdded ? 'Removido' : 'Adicionado',
+                                                alreadyAdded ? `Curso removido de "${pl.name}".` : `Curso adicionado à "${pl.name}".`
+                                            );
+                                        }}>
+                                        <Ionicons
+                                            name={alreadyAdded ? 'checkmark-circle' : 'add-circle-outline'}
+                                            size={22}
+                                            color={alreadyAdded ? '#0D9488' : '#2563EB'}
+                                        />
+                                        <Text style={styles.playlistModalItemText}>{pl.name}</Text>
+                                        {alreadyAdded && <Text style={styles.playlistModalAdded}>Adicionado</Text>}
+                                    </TouchableOpacity>
+                                );
+                            })
+                        )}
+                        <TouchableOpacity style={styles.playlistModalClose}
+                            onPress={() => setShowPlaylistPicker(false)}>
+                            <Text style={styles.playlistModalCloseText}>Fechar</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </ScrollView>
     );
 }
@@ -264,7 +327,7 @@ const styles = StyleSheet.create({
     banner: { height: 260, position: 'relative' },
     bannerImage: { width: '100%', height: '100%' },
     bannerPlaceholder: { width: '100%', height: '100%', backgroundColor: '#0A1628', justifyContent: 'center', alignItems: 'center' },
-    bannerOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, paddingTop: 50, backgroundColor: 'rgba(10,22,40,0.7)', },
+    bannerOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, paddingTop: 50, backgroundColor: 'rgba(10,22,40,0.7)' },
     bannerTitle: { fontSize: 20, fontWeight: 'bold', color: '#fff', marginBottom: 4 },
     bannerDesc: { fontSize: 12, color: '#ccc', marginBottom: 4 },
     bannerAuthor: { fontSize: 12, color: '#B0BEC5', marginBottom: 8 },
@@ -311,6 +374,7 @@ const styles = StyleSheet.create({
     certCard: { backgroundColor: '#fff', borderRadius: 14, padding: 24, alignItems: 'center', gap: 8 },
     certTitle: { fontSize: 18, fontWeight: '700', color: '#0A1628' },
     certDesc: { fontSize: 13, color: '#888', textAlign: 'center', lineHeight: 20 },
+    certBold: { fontWeight: 'bold', color: '#ef4444' },
 
     // COMMENTS
     commentItem: { flexDirection: 'row', marginBottom: 14, gap: 10 },
@@ -327,4 +391,21 @@ const styles = StyleSheet.create({
     // EMPTY
     emptyCard: { backgroundColor: '#fff', borderRadius: 10, padding: 20, alignItems: 'center' },
     emptyText: { fontSize: 14, color: '#888' },
-});
+
+    // PLAYLIST MODAL
+    playlistModalOverlay: {
+        flex: 1, backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center', alignItems: 'center', padding: 24,
+    },
+    playlistModalCard: { backgroundColor: '#fff', borderRadius: 16, padding: 24, width: '100%' },
+    playlistModalTitle: { fontSize: 18, fontWeight: '700', color: '#0A1628', marginBottom: 16 },
+    playlistModalEmpty: { fontSize: 14, color: '#999', textAlign: 'center', paddingVertical: 20 },
+    playlistModalItem: {
+        flexDirection: 'row', alignItems: 'center', gap: 12,
+        paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#f0f0f0',
+    },
+    playlistModalItemText: { flex: 1, fontSize: 15, color: '#333' },
+    playlistModalAdded: { fontSize: 12, color: '#0D9488', fontWeight: '600' },
+    playlistModalClose: { paddingVertical: 14, alignItems: 'center', marginTop: 8 },
+    playlistModalCloseText: { fontSize: 15, color: '#2563EB', fontWeight: '600' },
+}) as any;
