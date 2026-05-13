@@ -110,16 +110,6 @@ export default function AIScreen() {
                 <Text style={styles.headerTitle}>IA Dicas</Text>
             </View>
 
-            {/* MODEL LOADING BANNER */}
-            {ai.isAvailable && !ai.modelReady && (
-                <View style={styles.modelLoadingBanner}>
-                    <ActivityIndicator size="small" color="#2563EB" />
-                    <Text style={styles.modelLoadingText}>
-                        Carregando modelo de IA... {Math.round(ai.downloadProgress * 100)}%
-                    </Text>
-                </View>
-            )}
-
             {/* HERO */}
             <View style={styles.hero}>
                 <Text style={styles.heroTitle}>
@@ -178,7 +168,7 @@ export default function AIScreen() {
                     <View style={styles.aiCard}>
                         <Text style={styles.aiCardBrand}>
                             <Ionicons name="sparkles" size={14} color="#2563EB" /> IA OncoPed Academy
-                            {ai.isAvailable && <Text style={styles.aiOnDevice}> (On-device)</Text>}
+                            {ai.isAvailable && <Text style={styles.aiOnDevice}> (Gemini)</Text>}
                         </Text>
                         <Text style={styles.aiCardText}>{aiResponse}</Text>
                     </View>

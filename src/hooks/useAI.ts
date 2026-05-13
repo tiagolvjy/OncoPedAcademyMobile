@@ -1,77 +1,51 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
+import { getAI, getGenerativeModel, GoogleAIBackend } from 'firebase/ai';
+import app from '../config/firebase';
 
-let useLLMHook: any = null;
-let LLAMA_MODEL: any = null;
+let aiModel: any = null;
 
 try {
-    const executorch = require('react-native-executorch');
-    useLLMHook = executorch.useLLM;
-    LLAMA_MODEL = executorch.LLAMA3_2_1B;
-} catch {
-    // ExecuTorch não disponível
+    const ai = getAI(app, { backend: new GoogleAIBackend() });
+    aiModel = getGenerativeModel(ai, { model: 'gemini-2.5-flash' });
+} catch (error) {
+    console.warn('Firebase AI não disponível:', error);
 }
 
 export function useAI() {
-    const [isAvailable] = useState(!!useLLMHook);
-    const [aiResponse, setAiResponse] = useState('');
     const [aiLoading, setAiLoading] = useState(false);
-    const [modelReady, setModelReady] = useState(false);
-    const [modelLoading, setModelLoading] = useState(false);
-    const llmRef = useRef<any>(null);
-
-    // Inicializa o LLM se disponível
-    if (useLLMHook && !llmRef.current) {
-        try {
-            llmRef.current = useLLMHook({ model: LLAMA_MODEL });
-        } catch {
-            llmRef.current = null;
-        }
-    }
-
-    const llm = llmRef.current;
 
     const generateResponse = async (query: string, userName: string): Promise<string> => {
-        if (!isAvailable || !llm?.isReady) {
-            // Fallback sem IA real
+        if (!aiModel) {
             return getFallbackResponse(query, userName);
         }
 
         setAiLoading(true);
         try {
-            const messages = [
-                {
-                    role: 'system',
-                    content: `Você é um assistente educacional especializado em oncologia pediátrica da plataforma OncoPed Academy. 
-                    Responda sempre em português brasileiro. 
-                    Seja conciso, informativo e amigável. 
-                    Quando possível, sugira cursos ou conteúdos relacionados da plataforma.
-                    Não invente informações médicas — se não souber, diga que recomenda consultar um especialista.`,
-                },
-                {
-                    role: 'user',
-                    content: query,
-                },
-            ];
+            const prompt = `Você é um assistente educacional especializado em oncologia pediátrica da plataforma OncoPed Academy.
+Responda sempre em português brasileiro.
+Seja conciso (máximo 3 parágrafos), informativo e amigável.
+Quando possível, sugira que o usuário explore cursos relacionados na plataforma.
+Não invente informações médicas — se não souber, diga que recomenda consultar um especialista.
 
-            await llm.generate(messages);
-            const response = llm.response || 'Não consegui gerar uma resposta. Tente novamente.';
+O nome do usuário é ${userName}.
+
+Pesquisa do usuário: ${query}`;
+
+            const result = await aiModel.generateContent(prompt);
+            const response = result.response.text();
             setAiLoading(false);
-            return response;
+            return response || getFallbackResponse(query, userName);
         } catch (error) {
-            console.error('Erro na geração IA:', error);
+            console.error('Erro Gemini:', error);
             setAiLoading(false);
             return getFallbackResponse(query, userName);
         }
     };
 
     return {
-        isAvailable,
-        modelReady: llm?.isReady ?? false,
-        modelLoading: llm?.isGenerating ?? false,
-        downloadProgress: llm?.downloadProgress ?? 0,
+        isAvailable: !!aiModel,
         generateResponse,
         aiLoading,
-        aiResponse: llm?.response ?? aiResponse,
     };
 }
 
@@ -94,8 +68,8 @@ function getFallbackResponse(query: string, userName: string): string {
         return `Olá ${userName}! Os protocolos de tratamento em oncologia pediátrica são padronizados e incluem quimioterapia, cirurgia, radioterapia e, cada vez mais, terapias-alvo. Explore os cursos sobre protocolos terapêuticos disponíveis.`;
     }
     if (q.includes('efeitos') || q.includes('tardios')) {
-        return `Olá ${userName}! Os efeitos tardios do tratamento oncológico pediátrico incluem alterações cardíacas, endócrinas, neurocognitivas e risco de segundas neoplasias. O acompanhamento a longo prazo é essencial. Confira os conteúdos sobre sobrevivência na plataforma.`;
+        return `Olá ${userName}! Os efeitos tardios do tratamento oncológico pediátrico incluem alterações cardíacas, endócrinas, neurocognitivas e risco de segundas neoplasias. O acompanhamento a longo prazo é essencial.`;
     }
 
-    return `Olá ${userName}! Encontrei conteúdos relacionados a "${query}". Com base no seu perfil, recomendo explorar os cursos destacados abaixo para aprimorar seus conhecimentos na área de oncologia pediátrica.`;
+    return `Olá ${userName}! Encontrei conteúdos relacionados a "${query}". Recomendo explorar os cursos destacados abaixo para aprimorar seus conhecimentos em oncologia pediátrica.`;
 }
