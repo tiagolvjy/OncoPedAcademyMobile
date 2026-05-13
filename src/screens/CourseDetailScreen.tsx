@@ -102,7 +102,7 @@ export default function CourseDetailScreen({ route }: any) {
             {/* BANNER */}
             <View style={styles.banner}>
                 {course.coverImage ? (
-                    <Image source={{ uri: course.coverImage }} style={styles.bannerImage} />
+                    <Image source={{ uri: course.coverImage }} style={styles.bannerImage} resizeMode="cover" />
                 ) : (
                     <View style={styles.bannerPlaceholder}>
                         <Ionicons name="book" size={40} color="#fff" />
@@ -325,9 +325,9 @@ const styles = StyleSheet.create({
 
     // BANNER
     banner: { height: 260, position: 'relative' },
-    bannerImage: { width: '100%', height: '100%' },
+    bannerImage: { width: '100%',  height: '100%', resizeMode: 'cover' },
     bannerPlaceholder: { width: '100%', height: '100%', backgroundColor: '#0A1628', justifyContent: 'center', alignItems: 'center' },
-    bannerOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, paddingTop: 50, backgroundColor: 'rgba(10,22,40,0.7)' },
+    bannerOverlay: { position: 'absolute',top: 0, bottom: 0, left: 0, right: 0, padding: 16, paddingTop: 50, justifyContent: 'flex-end', backgroundColor: 'rgba(10,22,40,0.5)' },
     bannerTitle: { fontSize: 20, fontWeight: 'bold', color: '#fff', marginBottom: 4 },
     bannerDesc: { fontSize: 12, color: '#ccc', marginBottom: 4 },
     bannerAuthor: { fontSize: 12, color: '#B0BEC5', marginBottom: 8 },
