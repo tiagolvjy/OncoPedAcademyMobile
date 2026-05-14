@@ -1,5 +1,5 @@
 import {
-    collection, getDocs, addDoc,
+    collection, getDocs, addDoc, deleteDoc, updateDoc, doc,
     query, where, orderBy,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
@@ -36,6 +36,24 @@ const CommentsService = {
             return true;
         } catch (error) {
             console.error('Erro comentários add:', error);
+            return false;
+        }
+    },
+
+    delete: async (commentId: string): Promise<boolean> => {
+        try {
+            await deleteDoc(doc(db, 'comments', commentId));
+            return true;
+        } catch {
+            return false;
+        }
+    },
+
+    update: async (commentId: string, text: string): Promise<boolean> => {
+        try {
+            await updateDoc(doc(db, 'comments', commentId), { text });
+            return true;
+        } catch {
             return false;
         }
     },

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity,
-    ScrollView, ActivityIndicator, Alert, BackHandler,
+    ScrollView, ActivityIndicator, Alert, BackHandler, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
@@ -226,7 +226,7 @@ export default function QuizScreen({ route, navigation }: any) {
             <ScrollView contentContainerStyle={styles.reviewContainer}>
                 <Text style={styles.reviewTitle}>Revisão das Respostas</Text>
                 <Text style={styles.reviewSubtitle}>
-                    Veja quais questões você acertou e errou para fins de aprendizado.
+                    Confira quais questões você acertou e errou para melhor aprendizado.
                 </Text>
 
                 {questions.map((question, qIndex) => {
@@ -244,6 +244,14 @@ export default function QuizScreen({ route, navigation }: any) {
                                 <Text style={styles.reviewQuestionNum}>Questão {qIndex + 1}</Text>
                             </View>
                             <Text style={styles.reviewQuestionText}>{question.text}</Text>
+
+                            {question.imageURL && (
+                                <Image
+                                    source={{ uri: question.imageURL }}
+                                    style={styles.reviewQuestionImage}
+                                    resizeMode="contain"
+                                />
+                            )}
 
                             {question.options.map((option) => {
                                 const isSelected = answer?.selectedOptionId === option.id;
@@ -385,6 +393,15 @@ export default function QuizScreen({ route, navigation }: any) {
 
             {/* PERGUNTA */}
             <Text style={styles.questionText}>{currentQuestion.text}</Text>
+            
+            {/* IMAGEM DA QUESTÃO */}
+            {currentQuestion.imageURL && (
+                <Image
+                    source={{ uri: currentQuestion.imageURL }}
+                    style={styles.questionImage}
+                    resizeMode="contain"
+                />
+            )}
 
             {/* OPÇÕES */}
             {currentQuestion.options.map((option) => (
@@ -509,6 +526,10 @@ const styles = StyleSheet.create({
         marginBottom: 14, shadowColor: '#000', shadowOpacity: 0.04,
         shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1,
     },
+    reviewQuestionImage: {
+    width: '100%', height: 160, borderRadius: 8,
+    marginBottom: 12, backgroundColor: '#f0f0f0',
+    },
     reviewHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
     reviewQuestionNum: { fontSize: 14, fontWeight: '700', color: '#0A1628' },
     reviewQuestionText: { fontSize: 15, color: '#333', lineHeight: 22, marginBottom: 12 },
@@ -526,4 +547,10 @@ const styles = StyleSheet.create({
     reviewOptionText: { flex: 1, fontSize: 14, color: '#555' },
     reviewOptionTextCorrect: { color: '#0D9488', fontWeight: '600' },
     reviewOptionTextWrong: { color: '#ef4444', fontWeight: '600' },
+
+    questionImage: {
+    width: '100%', height: 200, borderRadius: 10,
+    marginBottom: 16, backgroundColor: '#f0f0f0',
+    
+},
 });

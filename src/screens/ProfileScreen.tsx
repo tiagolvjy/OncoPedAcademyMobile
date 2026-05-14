@@ -109,8 +109,7 @@ export default function ProfileScreen() {
                     <MenuItem icon="document-text-outline" label="Termos de uso"
                         onPress={() => Alert.alert('Termos de Uso', 'Os termos de uso estarão disponíveis em breve.')} />
                     <View style={styles.divider} />
-                    <MenuItem icon="shield-checkmark-outline" label="LGPD"
-                        onPress={() => Alert.alert('LGPD', 'Política de privacidade estará disponível em breve.')} />
+
                 </View>
             </View>
 
@@ -133,7 +132,7 @@ export default function ProfileScreen() {
             </View>
 
             {/* DEV: RESET ONBOARDING */}
-            <TouchableOpacity
+            {/* <TouchableOpacity
                 style={styles.devBtn}
                 onPress={async () => {
                     await AsyncStorage.removeItem('@onboarding_done');
@@ -141,7 +140,7 @@ export default function ProfileScreen() {
                 }}
             >
                 <Text style={styles.devBtnText}>Resetar Onboarding (dev)</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
         </ScrollView>
     );
 }

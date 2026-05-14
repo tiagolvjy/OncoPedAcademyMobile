@@ -59,15 +59,20 @@ export default function AIScreen() {
         setLoading(true);
         setHasSearched(true);
 
-        // Busca nos cursos
-        const terms = query.toLowerCase().split(' ');
-        const filtered = courses.filter(c => {
+        const stopwords = ['de', 'da', 'do', 'em', 'para', 'com', 'os', 'as', 'um', 'uma', 'e', 'o', 'a'];
+        const terms = query.toLowerCase()
+            .split(' ')
+            .filter(t => t.length > 2 && !stopwords.includes(t));
+
+        const filtered = terms.length > 0 ? courses.filter(c => {
             const searchable = `${c.title} ${c.description} ${c.authorName}`.toLowerCase();
-            return terms.some(term => searchable.includes(term));
-        });
+            const matchCount = terms.filter(term => searchable.includes(term)).length;
+            // Exige pelo menos 50% dos termos relevantes
+            return matchCount >= Math.ceil(terms.length * 0.5);
+        }) : [];
+
         setResults(filtered);
 
-        // Gera resposta da IA (real ou fallback)
         const response = await ai.generateResponse(query, firstName);
         setAiResponse(response);
 
