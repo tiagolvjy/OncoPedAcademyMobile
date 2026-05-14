@@ -171,8 +171,8 @@ export default function CadastroMedicoScreen({ navigation }: any) {
                 <View style={styles.card}>
                     <TouchableOpacity style={styles.backButton} onPress={() => {
                         if (step > 1) setStep(step - 1);
-                        else navigation.goBack();
-                    }}>
+                        else if (navigation.canGoBack()) navigation.goBack();
+                        else navigation.navigate('Login');}}>
                         <Ionicons name="arrow-back" size={22} color="#0A1628" />
                         <Text style={styles.backButtonText}>Voltar</Text>
                     </TouchableOpacity>

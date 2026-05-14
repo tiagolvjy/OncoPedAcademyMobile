@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     View, Text, StyleSheet, TextInput, TouchableOpacity,
     ScrollView, Image, ActivityIndicator,
@@ -8,6 +8,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import CourseServicesMobile, { Course } from '../services/courses';
 import FavoritesService from '../services/favorites';
+import { useAI } from '../hooks/useAI';
 
 const SUGGESTED_TAGS = [
     'Leucemia Linfoide Aguda',
@@ -20,6 +21,7 @@ const SUGGESTED_TAGS = [
 export default function AIScreen() {
     const { user, userData } = useAuth();
     const navigation = useNavigation<any>();
+    const ai = useAI();
     const [search, setSearch] = useState('');
     const [courses, setCourses] = useState<Course[]>([]);
     const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
@@ -46,7 +48,7 @@ export default function AIScreen() {
         setFavoriteIds(favIds);
     };
 
-    const handleSearch = (query: string) => {
+    const handleSearch = async (query: string) => {
         if (!query.trim()) {
             setResults([]);
             setHasSearched(false);
@@ -57,31 +59,24 @@ export default function AIScreen() {
         setLoading(true);
         setHasSearched(true);
 
-        // Simula delay de IA processando
-        setTimeout(() => {
-            const terms = query.toLowerCase().split(' ');
-            const filtered = courses.filter(c => {
-                const searchable = `${c.title} ${c.description} ${c.authorName}`.toLowerCase();
-                return terms.some(term => searchable.includes(term));
-            });
+        const stopwords = ['de', 'da', 'do', 'em', 'para', 'com', 'os', 'as', 'um', 'uma', 'e', 'o', 'a'];
+        const terms = query.toLowerCase()
+            .split(' ')
+            .filter(t => t.length > 2 && !stopwords.includes(t));
 
-            setResults(filtered);
+        const filtered = terms.length > 0 ? courses.filter(c => {
+            const searchable = `${c.title} ${c.description} ${c.authorName}`.toLowerCase();
+            const matchCount = terms.filter(term => searchable.includes(term)).length;
+            // Exige pelo menos 50% dos termos relevantes
+            return matchCount >= Math.ceil(terms.length * 0.5);
+        }) : [];
 
-            // Gera resposta da IA (simulada por enquanto, ExecuTorch depois)
-            if (filtered.length > 0) {
-                setAiResponse(
-                    `Olá ${firstName}! Encontrei ${filtered.length} conteúdo(s) relacionado(s) a "${query}". ` +
-                    `Com base no seu perfil, recomendo começar pelos cursos destacados abaixo para aprimorar seus conhecimentos na área.`
-                );
-            } else {
-                setAiResponse(
-                    `Não encontrei cursos específicos sobre "${query}" na plataforma. ` +
-                    `Tente termos como "diagnóstico", "tratamento" ou explore as sugestões abaixo.`
-                );
-            }
+        setResults(filtered);
 
-            setLoading(false);
-        }, 800);
+        const response = await ai.generateResponse(query, firstName);
+        setAiResponse(response);
+
+        setLoading(false);
     };
 
     const handleTagPress = (tag: string) => {
@@ -178,6 +173,7 @@ export default function AIScreen() {
                     <View style={styles.aiCard}>
                         <Text style={styles.aiCardBrand}>
                             <Ionicons name="sparkles" size={14} color="#2563EB" /> IA OncoPed Academy
+                            {ai.isAvailable && <Text style={styles.aiOnDevice}> (Gemini)</Text>}
                         </Text>
                         <Text style={styles.aiCardText}>{aiResponse}</Text>
                     </View>
@@ -311,6 +307,14 @@ const styles = StyleSheet.create({
     avatarText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
     headerTitle: { fontSize: 20, fontWeight: '700', color: '#fff' },
 
+    // MODEL LOADING
+    modelLoadingBanner: {
+        flexDirection: 'row', alignItems: 'center', gap: 8,
+        backgroundColor: '#EBF5FF', paddingHorizontal: 16, paddingVertical: 10,
+        marginHorizontal: 16, marginTop: 12, borderRadius: 10,
+    },
+    modelLoadingText: { fontSize: 13, color: '#2563EB' },
+
     // HERO
     hero: { backgroundColor: '#fff', paddingHorizontal: 20, paddingTop: 24, paddingBottom: 16 },
     heroTitle: { fontSize: 22, fontWeight: 'bold', color: '#2563EB', lineHeight: 30, marginBottom: 6 },
@@ -358,6 +362,7 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 }, elevation: 2,
     },
     aiCardBrand: { fontSize: 13, fontWeight: '700', color: '#2563EB', marginBottom: 8 },
+    aiOnDevice: { fontSize: 10, color: '#0D9488' },
     aiCardText: { fontSize: 14, color: '#444', lineHeight: 22 },
 
     // COURSE CARD

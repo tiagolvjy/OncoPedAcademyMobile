@@ -52,7 +52,9 @@ export default function CoursesNavigator() {
             <Stack.Screen
                 name="WatchLaterList"
                 component={WatchLaterListScreen}
-                options={{ title: 'Assistir mais tarde' }}
+                options={({ route }: any) => ({
+                    title: route.params?.title ?? 'Assistir mais tarde',
+                })}
             />
         </Stack.Navigator>
     );

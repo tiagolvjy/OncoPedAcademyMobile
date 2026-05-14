@@ -4,10 +4,11 @@ import {
     signOut,
     sendPasswordResetEmail,
 } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
 import { StudentUser, DoctorUser } from '../types/user';
 import { uploadPhoto } from './storage';
+
 
 const AuthServices = {
 
@@ -112,7 +113,19 @@ const AuthServices = {
 
     login: async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
         try {
-            await signInWithEmailAndPassword(auth, email, password);
+            const credential = await signInWithEmailAndPassword(auth, email, password);
+            const uid = credential.user.uid;
+
+            // Verifica status no Firestore
+            const userDoc = await getDoc(doc(db, 'users', uid));
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                if (userData.status === 'inactive') {
+                    await signOut(auth);
+                    return { success: false, error: 'Conta desativada. Entre em contato com o administrador.' };
+                }
+            }
+
             return { success: true };
         } catch (error: any) {
             if (

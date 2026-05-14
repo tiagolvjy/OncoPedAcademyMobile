@@ -28,6 +28,9 @@ export default function CoursesScreen() {
     const [showPlaylistModal, setShowPlaylistModal] = useState(false);
     const [playlistName, setPlaylistName] = useState('');
     const [watchLaterIds, setWatchLaterIds] = useState<string[]>([]);
+    const [showEditPlaylistModal, setShowEditPlaylistModal] = useState(false);
+    const [editingPlaylist, setEditingPlaylist] = useState<Playlist | null>(null);
+    const [editPlaylistName, setEditPlaylistName] = useState('');
 
     const firstName = userData?.name?.split(' ')[0] ?? 'Usuário';
 
@@ -110,14 +113,29 @@ export default function CoursesScreen() {
         </TouchableOpacity>
     );
 
-    const renderPlaylist = ({ item }: { item: Playlist }) => (
-        <TouchableOpacity style={styles.playlistCard}>
-            <View style={styles.playlistImagePlaceholder}>
+    const renderPlaylist = (item: Playlist) => (
+        <View key={item.id} style={styles.playlistCard}>
+            <TouchableOpacity style={styles.playlistImagePlaceholder}
+                onPress={() => {
+                    const playlistCourses = courses.filter(c => item.courseIds?.includes(c.id));
+                    navigation.navigate('WatchLaterList', { courses: playlistCourses, title: item.name });
+                }}>
                 <Ionicons name="list" size={32} color="#fff" />
+            </TouchableOpacity>
+            <View style={styles.playlistInfoRow}>
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.playlistName}>{item.name}</Text>
+                    <Text style={styles.playlistCount}>{item.courseIds?.length ?? 0} curso(s)</Text>
+                </View>
+                <TouchableOpacity onPress={() => {
+                    setEditingPlaylist(item);
+                    setEditPlaylistName(item.name);
+                    setShowEditPlaylistModal(true);
+                }}>
+                    <Ionicons name="ellipsis-vertical" size={20} color="#999" />
+                </TouchableOpacity>
             </View>
-            <Text style={styles.playlistName}>{item.name}</Text>
-            <Text style={styles.playlistCount}>{item.courseIds?.length ?? 0} Vídeos</Text>
-        </TouchableOpacity>
+        </View>
     );
 
     if (loading) {
@@ -187,7 +205,7 @@ export default function CoursesScreen() {
 
             {tab === 'playlists' && (
                 <ScrollView contentContainerStyle={styles.list}>
-                    {/* ASSISTIR DEPOIS */}
+                    {/* ASSISTIR MAIS TARDE */}
                     <TouchableOpacity
                         style={styles.watchLaterPlaylist}
                         onPress={() => {
@@ -199,7 +217,7 @@ export default function CoursesScreen() {
                             <Ionicons name="time-outline" size={28} color="#fff" />
                         </View>
                         <View style={styles.watchLaterInfo}>
-                            <Text style={styles.watchLaterTitle}>Assistir depois</Text>
+                            <Text style={styles.watchLaterTitle}>Assistir mais tarde</Text>
                             <Text style={styles.watchLaterCount}>{watchLaterIds.length} curso(s)</Text>
                         </View>
                         <Ionicons name="chevron-forward" size={20} color="#ccc" />
@@ -219,15 +237,7 @@ export default function CoursesScreen() {
                         </View>
                     ) : (
                         <View style={styles.playlistGrid}>
-                            {playlists.map((item) => (
-                                <TouchableOpacity key={item.id} style={styles.playlistCard}>
-                                    <View style={styles.playlistImagePlaceholder}>
-                                        <Ionicons name="list" size={32} color="#fff" />
-                                    </View>
-                                    <Text style={styles.playlistName}>{item.name}</Text>
-                                    <Text style={styles.playlistCount}>{item.courseIds?.length ?? 0} Vídeos</Text>
-                                </TouchableOpacity>
-                            ))}
+                            {playlists.map((item) => renderPlaylist(item))}
                         </View>
                     )}
                 </ScrollView>
@@ -247,7 +257,63 @@ export default function CoursesScreen() {
                     }
                 />
             )}
-
+            {/* MODAL EDITAR/EXCLUIR PLAYLIST */}
+            <Modal visible={showEditPlaylistModal} transparent animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalCard}>
+                        <Text style={styles.modalTitle}>Editar Playlist</Text>
+                        <TextInput
+                            style={styles.modalInput}
+                            placeholder="Nome da playlist"
+                            placeholderTextColor="#aaa"
+                            value={editPlaylistName}
+                            onChangeText={setEditPlaylistName}
+                        />
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity style={styles.modalBtnDelete}
+                                onPress={() => {
+                                    Alert.alert('Excluir playlist?', `Deseja excluir "${editingPlaylist?.name}"?`, [
+                                        { text: 'Cancelar', style: 'cancel' },
+                                        {
+                                            text: 'Excluir', style: 'destructive',
+                                            onPress: async () => {
+                                                if (editingPlaylist?.id) {
+                                                    await PlaylistsService.delete(editingPlaylist.id);
+                                                    setShowEditPlaylistModal(false);
+                                                    setEditingPlaylist(null);
+                                                    loadData();
+                                                }
+                                            },
+                                        },
+                                    ]);
+                                }}>
+                                <Ionicons name="trash-outline" size={18} color="#ef4444" />
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.modalBtnCancel}
+                                onPress={() => { setShowEditPlaylistModal(false); setEditingPlaylist(null); }}>
+                                <Text style={styles.modalBtnCancelText}>Cancelar</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.modalBtnConfirm}
+                                onPress={async () => {
+                                    if (!editPlaylistName.trim() || !editingPlaylist?.id) return;
+                                    await PlaylistsService.addCourse(editingPlaylist.id,
+                                        editingPlaylist.courseIds ?? []);
+                                    // Atualiza nome via updateDoc
+                                    const { doc, updateDoc } = require('firebase/firestore');
+                                    const { db } = require('../config/firebase');
+                                    await updateDoc(doc(db, 'playlists', editingPlaylist.id), {
+                                        name: editPlaylistName.trim(),
+                                    });
+                                    setShowEditPlaylistModal(false);
+                                    setEditingPlaylist(null);
+                                    loadData();
+                                }}>
+                                <Text style={styles.modalBtnConfirmText}>Salvar</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
             {/* MODAL CRIAR PLAYLIST */}
             <Modal visible={showPlaylistModal} transparent animationType="fade">
                 <View style={styles.modalOverlay}>
@@ -352,6 +418,8 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 }, elevation: 2,
     },
+    playlistInfoRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 8 },
+    modalBtnDelete: { padding: 10, marginRight: 'auto' },
     watchLaterIcon: {
         width: 52, height: 52, borderRadius: 12, backgroundColor: '#2563EB',
         justifyContent: 'center', alignItems: 'center', marginRight: 14,

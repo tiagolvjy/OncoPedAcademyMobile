@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import {
     View, Text, StyleSheet, ScrollView,
     TouchableOpacity, TextInput, Alert, ActivityIndicator,
+    KeyboardAvoidingView, Platform, Image, Modal,
 } from 'react-native';
 import { Video, ResizeMode } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +19,9 @@ export default function LessonScreen({ route }: any) {
     const [newComment, setNewComment] = useState('');
     const [isWatchLater, setIsWatchLater] = useState(false);
     const [loadingComments, setLoadingComments] = useState(true);
+    const [selectedComment, setSelectedComment] = useState<Comment | null>(null);
+    const [editingText, setEditingText] = useState('');
+    const [showCommentModal, setShowCommentModal] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -73,118 +77,189 @@ export default function LessonScreen({ route }: any) {
     };
 
     return (
-        <ScrollView contentContainerStyle={styles.container} bounces={false}>
-            {/* VIDEO PLAYER */}
-            {lesson.videoURL ? (
-                <Video
-                    ref={videoRef}
-                    source={{ uri: lesson.videoURL }}
-                    style={styles.video}
-                    useNativeControls
-                    resizeMode={ResizeMode.CONTAIN}
-                    shouldPlay={false}
-                />
-            ) : (
-                <View style={styles.noVideo}>
-                    <Ionicons name="videocam-off-outline" size={48} color="#999" />
-                    <Text style={styles.noVideoText}>Vídeo não disponível</Text>
-                </View>
-            )}
-
-            {/* LESSON INFO */}
-            <View style={styles.infoSection}>
-                <Text style={styles.lessonTitle}>{lesson.title}</Text>
-                {lesson.duration > 0 && (
-                    <View style={styles.durationRow}>
-                        <Ionicons name="time-outline" size={14} color="#888" />
-                        <Text style={styles.durationText}>{lesson.duration} minutos</Text>
+        <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+            <ScrollView contentContainerStyle={styles.container} bounces={false} keyboardShouldPersistTaps="handled">
+                {/* VIDEO PLAYER */}
+                {lesson.videoURL ? (
+                    <Video
+                        ref={videoRef}
+                        source={{ uri: lesson.videoURL }}
+                        style={styles.video}
+                        useNativeControls
+                        resizeMode={ResizeMode.CONTAIN}
+                        shouldPlay={false}
+                    />
+                ) : (
+                    <View style={styles.noVideo}>
+                        <Ionicons name="videocam-off-outline" size={48} color="#999" />
+                        <Text style={styles.noVideoText}>Vídeo não disponível</Text>
                     </View>
                 )}
-            </View>
 
-            {/* ASSISTIR MAIS TARDE */}
-            <View style={styles.watchLaterCard}>
-                <Ionicons name="bookmark-outline" size={22} color="#2563EB" />
-                <View style={styles.watchLaterContent}>
-                    <Text style={styles.watchLaterTitle}>Assistir mais tarde</Text>
-                    <Text style={styles.watchLaterDesc}>
-                        Não pode ver agora? Guarde este vídeo na sua lista para assistir com calma depois.
+                {/* LESSON INFO */}
+                <View style={styles.infoSection}>
+                    <Text style={styles.lessonTitle}>{lesson.title}</Text>
+                    {lesson.duration > 0 && (
+                        <View style={styles.durationRow}>
+                            <Ionicons name="time-outline" size={14} color="#888" />
+                            <Text style={styles.durationText}>{lesson.duration} minutos</Text>
+                        </View>
+                    )}
+                </View>
+
+                {/* ASSISTIR MAIS TARDE */}
+                <View style={styles.watchLaterCard}>
+                    <Ionicons name="bookmark-outline" size={22} color="#2563EB" />
+                    <View style={styles.watchLaterContent}>
+                        <Text style={styles.watchLaterTitle}>Assistir mais tarde</Text>
+                        <Text style={styles.watchLaterDesc}>
+                            Não pode ver agora? Guarde este vídeo na sua lista para assistir com calma depois.
+                        </Text>
+                    </View>
+                </View>
+                <TouchableOpacity style={styles.watchLaterBtn} onPress={handleToggleWatchLater}>
+                    <Text style={styles.watchLaterBtnText}>
+                        {isWatchLater ? 'Remover da lista' : 'Adicionar à lista'}
                     </Text>
-                </View>
-            </View>
-            <TouchableOpacity style={styles.watchLaterBtn} onPress={handleToggleWatchLater}>
-                <Text style={styles.watchLaterBtnText}>
-                    {isWatchLater ? 'Remover da lista' : 'Adicionar à lista'}
-                </Text>
-            </TouchableOpacity>
+                </TouchableOpacity>
 
-            {/* COMENTÁRIOS */}
-            <View style={styles.commentsSection}>
-                <View style={styles.commentsHeader}>
-                    <Ionicons name="chatbubbles-outline" size={18} color="#0A1628" />
-                    <Text style={styles.commentsTitle}>Comentários ({comments.length})</Text>
-                </View>
+                {/* COMENTÁRIOS */}
+                <View style={styles.commentsSection}>
+                    <View style={styles.commentsHeader}>
+                        <Ionicons name="chatbubbles-outline" size={18} color="#0A1628" />
+                        <Text style={styles.commentsTitle}>Comentários ({comments.length})</Text>
+                    </View>
 
-                {loadingComments ? (
-                    <ActivityIndicator color="#2563EB" style={{ marginTop: 12 }} />
-                ) : (
-                    comments.map((c) => (
-                        <View key={c.id} style={styles.commentItem}>
-                            <View style={styles.commentAvatar}>
-                                <Text style={styles.commentAvatarText}>
-                                    {c.userName.charAt(0).toUpperCase()}
-                                </Text>
-                            </View>
-                            <View style={styles.commentContent}>
-                                <View style={styles.commentHeaderRow}>
-                                    <Text style={styles.commentAuthor}>{c.userName}</Text>
-                                    <Text style={styles.commentTime}>• {getTimeAgo(c.createdAt)}</Text>
+                    {loadingComments ? (
+                        <ActivityIndicator color="#2563EB" style={{ marginTop: 12 }} />
+                    ) : (
+                        comments.map((c) => (
+                            <TouchableOpacity
+                                key={c.id}
+                                style={styles.commentItem}
+                                onLongPress={() => {
+                                    if (c.userId === user?.uid) {
+                                        setSelectedComment(c);
+                                        setEditingText(c.text);
+                                        setShowCommentModal(true);
+                                    }
+                                }}
+                                activeOpacity={c.userId === user?.uid ? 0.7 : 1}
+                            >
+                                <View style={styles.commentAvatar}>
+                                    {c.userPhoto ? (
+                                        <Image source={{ uri: c.userPhoto }} style={styles.commentAvatarImg} />
+                                    ) : (
+                                        <Text style={styles.commentAvatarText}>
+                                            {c.userName.charAt(0).toUpperCase()}
+                                        </Text>
+                                    )}
                                 </View>
-                                <Text style={styles.commentText}>{c.text}</Text>
-                                <TouchableOpacity style={styles.replyBtn}>
-                                    <Ionicons name="return-down-forward-outline" size={14} color="#2563EB" />
-                                    <Text style={styles.replyText}>Responder</Text>
+                                <View style={styles.commentContent}>
+                                    <View style={styles.commentHeaderRow}>
+                                        <Text style={styles.commentAuthor}>{c.userName}</Text>
+                                        <Text style={styles.commentTime}>• {getTimeAgo(c.createdAt)}</Text>
+                                    </View>
+                                    <Text style={styles.commentText}>{c.text}</Text>
+                                    {c.userId === user?.uid && (
+                                        <Text style={styles.commentOwnerHint}>Segure para editar</Text>
+                                    )}
+                                </View>
+                            </TouchableOpacity>
+                        ))
+                    )}
+
+                    <Text style={styles.inputLabel}>Sua Mensagem</Text>
+                    <TextInput
+                        style={styles.commentInput}
+                        placeholder="O que você achou deste tópico?"
+                        placeholderTextColor="#aaa"
+                        multiline
+                        value={newComment}
+                        onChangeText={setNewComment}
+                    />
+                    <TouchableOpacity style={styles.commentBtn} onPress={handleAddComment}>
+                        <Text style={styles.commentBtnText}>Adicionar comentário</Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* MODAL EDITAR/EXCLUIR COMENTÁRIO */}
+                <Modal visible={showCommentModal} transparent animationType="fade">
+                    <View style={styles.commentModalOverlay}>
+                        <View style={styles.commentModalCard}>
+                            <Text style={styles.commentModalTitle}>Editar comentário</Text>
+                            <TextInput
+                                style={styles.commentModalInput}
+                                value={editingText}
+                                onChangeText={setEditingText}
+                                multiline
+                                autoFocus
+                                placeholderTextColor="#aaa"
+                            />
+                            <View style={styles.commentModalButtons}>
+                                <TouchableOpacity
+                                    style={styles.commentModalDelete}
+                                    onPress={() => {
+                                        Alert.alert('Excluir comentário?', 'Esta ação não pode ser desfeita.', [
+                                            { text: 'Cancelar', style: 'cancel' },
+                                            {
+                                                text: 'Excluir',
+                                                style: 'destructive',
+                                                onPress: async () => {
+                                                    if (selectedComment?.id) {
+                                                        await CommentsService.delete(selectedComment.id);
+                                                        setComments(prev => prev.filter(c => c.id !== selectedComment.id));
+                                                        setShowCommentModal(false);
+                                                        setSelectedComment(null);
+                                                    }
+                                                },
+                                            },
+                                        ]);
+                                    }}>
+                                    <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.commentModalCancel}
+                                    onPress={() => { setShowCommentModal(false); setSelectedComment(null); }}>
+                                    <Text style={styles.commentModalCancelText}>Cancelar</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.commentModalSave}
+                                    onPress={async () => {
+                                        if (!editingText.trim() || !selectedComment?.id) return;
+                                        await CommentsService.update(selectedComment.id, editingText.trim());
+                                        setComments(prev => prev.map(c =>
+                                            c.id === selectedComment.id ? { ...c, text: editingText.trim() } : c
+                                        ));
+                                        setShowCommentModal(false);
+                                        setSelectedComment(null);
+                                    }}>
+                                    <Text style={styles.commentModalSaveText}>Salvar</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
-                    ))
-                )}
-
-                <Text style={styles.inputLabel}>Sua Mensagem</Text>
-                <TextInput
-                    style={styles.commentInput}
-                    placeholder="O que você achou deste tópico?"
-                    placeholderTextColor="#aaa"
-                    multiline
-                    value={newComment}
-                    onChangeText={setNewComment}
-                />
-                <TouchableOpacity style={styles.commentBtn} onPress={handleAddComment}>
-                    <Text style={styles.commentBtnText}>Adicionar comentário</Text>
-                </TouchableOpacity>
-            </View>
-        </ScrollView>
+                    </View>
+                </Modal>
+            </ScrollView>
+        </KeyboardAvoidingView>
     );
 }
 
 const styles = StyleSheet.create({
     container: { flexGrow: 1, backgroundColor: '#F0F4F8' },
-
-    // VIDEO
     video: { width: '100%', height: 220, backgroundColor: '#000' },
     noVideo: {
         width: '100%', height: 220, backgroundColor: '#172F50',
         justifyContent: 'center', alignItems: 'center', gap: 8,
     },
     noVideoText: { fontSize: 14, color: '#999' },
-
-    // INFO
     infoSection: { padding: 20, backgroundColor: '#fff' },
     lessonTitle: { fontSize: 20, fontWeight: 'bold', color: '#0A1628', marginBottom: 6 },
     durationRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     durationText: { fontSize: 13, color: '#888' },
-
-    // WATCH LATER
     watchLaterCard: {
         flexDirection: 'row', backgroundColor: '#fff', marginHorizontal: 16,
         marginTop: 16, borderRadius: 12, padding: 16, gap: 12,
@@ -199,22 +274,22 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20, paddingVertical: 8,
     },
     watchLaterBtnText: { color: '#2563EB', fontWeight: '600', fontSize: 13 },
-
-    // COMMENTS
     commentsSection: { padding: 16, marginTop: 16 },
     commentsHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 },
     commentsTitle: { fontSize: 16, fontWeight: '700', color: '#0A1628' },
     commentItem: { flexDirection: 'row', marginBottom: 16, gap: 10 },
     commentAvatar: {
         width: 38, height: 38, borderRadius: 19, backgroundColor: '#2563EB',
-        justifyContent: 'center', alignItems: 'center',
+        justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
     },
+    commentAvatarImg: { width: 38, height: 38, borderRadius: 19 },
     commentAvatarText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
     commentContent: { flex: 1 },
     commentHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
     commentAuthor: { fontSize: 14, fontWeight: '700', color: '#0A1628' },
     commentTime: { fontSize: 12, color: '#999' },
     commentText: { fontSize: 13, color: '#555', lineHeight: 20 },
+    commentOwnerHint: { fontSize: 10, color: '#bbb', fontStyle: 'italic', marginTop: 4 },
     replyBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
     replyText: { fontSize: 12, color: '#2563EB', fontWeight: '600' },
     inputLabel: { fontSize: 14, fontWeight: '600', color: '#333', marginTop: 8, marginBottom: 6 },
@@ -227,4 +302,21 @@ const styles = StyleSheet.create({
         alignItems: 'center', marginBottom: 20,
     },
     commentBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
-});
+    commentModalOverlay: {
+        flex: 1, backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center', alignItems: 'center', padding: 24,
+    },
+    commentModalCard: { backgroundColor: '#fff', borderRadius: 16, padding: 24, width: '100%' },
+    commentModalTitle: { fontSize: 18, fontWeight: '700', color: '#0A1628', marginBottom: 12 },
+    commentModalInput: {
+        borderWidth: 1, borderColor: '#ddd', borderRadius: 10, backgroundColor: '#fafafa',
+        padding: 12, minHeight: 80, fontSize: 14, color: '#333',
+        textAlignVertical: 'top', marginBottom: 16,
+    },
+    commentModalButtons: { flexDirection: 'row', alignItems: 'center' },
+    commentModalDelete: { padding: 8, marginRight: 'auto' },
+    commentModalCancel: { paddingVertical: 10, paddingHorizontal: 16 },
+    commentModalCancelText: { color: '#999', fontSize: 15, fontWeight: '600' },
+    commentModalSave: { backgroundColor: '#2563EB', borderRadius: 10, paddingVertical: 10, paddingHorizontal: 20 },
+    commentModalSaveText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+}) as any;

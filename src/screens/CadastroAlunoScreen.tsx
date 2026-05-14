@@ -134,12 +134,12 @@ export default function CadastroAlunoScreen({ navigation }: any) {
                 {/* CARD */}
                 <View style={styles.card}>
                     <TouchableOpacity style={styles.backButton} onPress={() => {
-                    if (step > 1) setStep(step - 1);
-                    else navigation.goBack();
-                }}>
-                    <Ionicons name="arrow-back" size={22} color="#0A1628" />
-                    <Text style={styles.backButtonText}>Voltar</Text>
-                </TouchableOpacity>
+                        if (step > 1) setStep(step - 1);
+                        else if (navigation.canGoBack()) navigation.goBack();
+                        else navigation.navigate('Login');}}>
+                        <Ionicons name="arrow-back" size={22} color="#0A1628" />
+                        <Text style={styles.backButtonText}>Voltar</Text>
+                    </TouchableOpacity>
                     <Text style={styles.title}>Cadastro do Aluno</Text>
                     <Text style={styles.subtitle}>Preencha seus dados para criar sua conta e começar sua jornada de aprendizado.</Text>
 
