@@ -4,6 +4,7 @@ import ProfileScreen from '../screens/ProfileScreen';
 import CertificatesScreen from '../screens/CertificatesScreen';
 import QuizHistoryScreen from '../screens/QuizHistoryScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
+import AboutScreen from '../screens/AboutScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -20,6 +21,12 @@ export default function ProfileNavigator() {
                 name="ProfileMain"
                 component={ProfileScreen}
                 options={{ headerShown: false, title: 'Perfil' }}
+            />
+            <Stack.Screen
+                name="About"
+                component={AboutScreen}
+                options={{ headerShown: false, title: 'Sobre o Aplicativo' }}
+                
             />
             <Stack.Screen
                 name="Certificates"
