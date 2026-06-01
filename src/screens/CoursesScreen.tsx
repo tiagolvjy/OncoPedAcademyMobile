@@ -150,12 +150,14 @@ export default function CoursesScreen() {
                     <Text style={styles.brandText}>
                         <Text style={styles.brandOnco}>OncoPed</Text> Academy
                     </Text>
-                    {userData?.photoURL
-                        ? <Image source={{ uri: userData.photoURL }} style={styles.avatar} />
-                        : <View style={styles.avatarPlaceholder}>
-                            <Text style={styles.avatarText}>{firstName.charAt(0)}</Text>
-                          </View>
-                    }
+                    <TouchableOpacity onPress={() => navigation.navigate('Perfil')}>
+                        {userData?.photoURL
+                            ? <Image source={{ uri: userData.photoURL }} style={styles.avatar} />
+                            : <View style={styles.avatarPlaceholder}>
+                                <Text style={styles.avatarText}>{firstName.charAt(0)}</Text>
+                            </View>
+                        }
+                    </TouchableOpacity>
                 </View>
                 <Text style={styles.headerTitle}>Cursos</Text>
             </View>

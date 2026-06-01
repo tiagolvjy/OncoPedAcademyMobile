@@ -121,6 +121,12 @@ export default function ProfileScreen() {
                         onPress={() => Alert.alert('Ajuda', 'Central de ajuda estará disponível em breve.')} />
                     <View style={styles.divider} />
                     <MenuItem icon="information-circle-outline" label="Sobre a versão" value="v1.0.0" />
+                    
+                    <MenuItem
+                        icon="information-circle-outline"
+                        label="Sobre o Aplicativo"
+                        onPress={() => navigation.navigate('About')}
+                    />
                 </View>
             </View>
 
