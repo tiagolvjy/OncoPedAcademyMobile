@@ -88,12 +88,14 @@ export default function HomeScreen() {
                     <Text style={styles.brandText}>
                         <Text style={styles.brandOnco}>OncoPed</Text> Academy
                     </Text>
-                    {userData?.photoURL
-                        ? <Image source={{ uri: userData.photoURL }} style={styles.avatar} />
-                        : <View style={styles.avatarPlaceholder}>
-                            <Text style={styles.avatarText}>{firstName.charAt(0)}</Text>
-                          </View>
-                    }
+                    <TouchableOpacity onPress={() => goToTab('Perfil')}>
+                        {userData?.photoURL
+                            ? <Image source={{ uri: userData.photoURL }} style={styles.avatar} />
+                            : <View style={styles.avatarPlaceholder}>
+                                <Text style={styles.avatarText}>{firstName.charAt(0)}</Text>
+                            </View>
+                        }
+                    </TouchableOpacity>
                 </View>
 
                 <Text style={styles.greeting}>Bem-vindo, {firstName}!</Text>
