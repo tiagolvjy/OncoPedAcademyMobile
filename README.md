@@ -36,6 +36,23 @@ cd OncoPedAcademyMobile
 # Instale as dependências
 npm install
 
+# Configure as variáveis de ambiente
+cp .env.example .env
+# Preencha o .env com as credenciais do Firebase
+```
+
+### Variáveis de ambiente necessárias
+
+```dotenv
+EXPO_PUBLIC_FIREBASE_API_KEY=
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+EXPO_PUBLIC_FIREBASE_APP_ID=
+```
+
+```bash
 # Inicie o projeto
 npx expo start
 ```
