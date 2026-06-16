@@ -1,7 +1,7 @@
 # [PT]
 # OncoPed Academy — Mobile
 
-Plataforma educacional mobile voltada para estudantes de medicina e profissionais da saúde, com foco em oncologia pediátrica. Desenvolvida como Trabalho de Conclusão de Curso (TCC) no Centro Universitário CESMAC, em parceria com o laboratório de robótica CITEC.
+Plataforma educacional mobile voltada para estudantes de medicina e profissionais da saúde, com foco em oncologia pediátrica. Desenvolvida como Trabalho de Conclusão de Curso (TCC) no Centro Universitário CESMAC, em parceria com o Centro de Inovação Tecnológica do Cesmac - CITEC.
 
 ![React Native](https://img.shields.io/badge/React_Native-20232A?style=flat&logo=react&logoColor=61DAFB)
 ![Expo](https://img.shields.io/badge/Expo-000020?style=flat&logo=expo&logoColor=white)
